@@ -1,13 +1,20 @@
 <!--
 Sync Impact Report
-Version change: 1.0.0 → 1.1.0
+Version change: 1.1.0 → 1.2.0
 Modified principles: none renamed
 Added sections: none (existing section expanded)
 Removed sections: none
 Modified sections:
-  - Workflow deweloperski i bramki jakości: rozszerzono o wymóg, że `ponytail`
-    MUSI być używane również do samej implementacji kodu (zasady YAGNI/reużycia/
-    minimalnej implementacji), nie tylko do egzekucji poleceń weryfikacyjnych.
+  - Zakres domenowy: Raspberry Pi Pico Toolchain — dodano konkretne wymagania
+    domenowe wyekstrahowane z ROADMAP.md (triple targetów, minimalny kształt
+    extension DSL, cinterop CYW43 dla wariantów _w, zadania Gradle dla pełnego
+    cyklu build/UF2/flash/debug, zakres przyszłych faz PIO/multicore/power
+    management jako niewymagany wcześnie). Odnotowano jawny konflikt: plan
+    źródłowy sugerował Kotlin Multiplatform — odrzucony, Zasada I (zakaz KMP)
+    pozostaje w mocy bez zmian.
+Added artifacts (outside constitution):
+  - ROADMAP.md — pełny plan fazowy (Faza 0-5) implementacji pluginu,
+    zaadaptowany do custom Kotlin/Native target zamiast KMP.
 Templates requiring updates:
   - .specify/templates/plan-template.md ✅ no changes needed (Constitution Check gate is generic, resolved at plan time)
   - .specify/templates/spec-template.md ✅ no changes needed (technology-agnostic by design)
@@ -94,7 +101,29 @@ konfigurację toolchaina Kotlin/Native pod docelową architekturę, cinterop z
 Pico SDK, generowanie plików UF2 oraz flashowanie urządzenia. Każda nowa
 funkcjonalność domenowa MUSI jawnie deklarować, dla których wariantów płytki
 (RP2040/RP2350) jest wspierana — brak wsparcia dla wariantu MUSI być
-udokumentowany, nie domyślnie zakładany.
+udokumentowany, nie domyślnie zakładany. Szczegółowy harmonogram wdrożenia
+(fazy, deliverables, ryzyka) znajduje się w `ROADMAP.md`; ta sekcja definiuje
+trwałe wymagania wynikające z tego planu, obowiązujące niezależnie od fazy.
+
+Konkretne wymagania domenowe:
+
+- Plugin MUSI wspierać docelowe triple: `thumbv6m-none-eabi` dla RP2040 oraz
+  `thumbv8m.main-none-eabi` / `thumbv8m.main-none-eabihf` dla RP2350,
+  konfigurowane przez custom target Kotlin/Native (zgodnie z Zasadą I — bez
+  KMP).
+- Publiczny extension DSL MUSI udostępniać co najmniej wybór płytki
+  (`board = "pico" | "pico_w" | "pico2" | "pico2_w"`) i ścieżkę do Pico SDK
+  (`sdkPath`).
+- Warianty `_w` (Pico W, Pico 2 W) MUSZĄ automatycznie konfigurować cinterop
+  dla `pico_cyw43_arch` (CYW43/WiFi) — warianty bez `_w` MUSZĄ pomijać ten
+  cinterop domyślnie.
+- Plugin MUSI dostarczać zadania Gradle pokrywające pełny cykl: budowanie
+  binarki, generowanie UF2, flashowanie (przez `picotool` lub OpenOCD) i
+  debugowanie (GDB + OpenOCD) — nazwy zadań i dokładny zakres ustala plan
+  fazy zgodnie z `ROADMAP.md`.
+- Docelowo (Faza 4+ w `ROADMAP.md`) zakres obejmuje PIO, `pico_multicore`
+  i tryby oszczędzania energii — te funkcje NIE są wymagane w pierwszych
+  fazach i nie blokują wcześniejszych wydań.
 
 ## Workflow deweloperski i bramki jakości
 
@@ -132,4 +161,4 @@ Każdy plan (`plan.md`) i przegląd kodu MUSI zawierać sekcję Constitution
 Check weryfikującą zgodność z zasadami I–V powyżej. Złamanie zasady bez
 udokumentowanego uzasadnienia w `Complexity Tracking` blokuje scalenie.
 
-**Version**: 1.1.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-02
+**Version**: 1.2.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-02
