@@ -1,17 +1,13 @@
 <!--
 Sync Impact Report
-Version change: N/A (template) → 1.0.0
-Modified principles: N/A (initial ratification)
-Added sections:
-  - I. Ścisła kontrola wersji toolchainu
-  - II. 100% Kotlin, zero Javy
-  - III. Test-First w Kotest (NON-NEGOTIABLE)
-  - IV. Best Practices Gradle Plugin
-  - V. Jakość i statyczna analiza (NON-NEGOTIABLE)
-  - Zakres domenowy: Raspberry Pi Pico Toolchain
-  - Workflow deweloperski i bramki jakości
-  - Governance
-Removed sections: none (initial fill of template placeholders)
+Version change: 1.0.0 → 1.1.0
+Modified principles: none renamed
+Added sections: none (existing section expanded)
+Removed sections: none
+Modified sections:
+  - Workflow deweloperski i bramki jakości: rozszerzono o wymóg, że `ponytail`
+    MUSI być używane również do samej implementacji kodu (zasady YAGNI/reużycia/
+    minimalnej implementacji), nie tylko do egzekucji poleceń weryfikacyjnych.
 Templates requiring updates:
   - .specify/templates/plan-template.md ✅ no changes needed (Constitution Check gate is generic, resolved at plan time)
   - .specify/templates/spec-template.md ✅ no changes needed (technology-agnostic by design)
@@ -102,14 +98,20 @@ udokumentowany, nie domyślnie zakładany.
 
 ## Workflow deweloperski i bramki jakości
 
-Do egzekucji i weryfikacji poleceń (build, testy, lint, statyczna analiza)
-MUSI być używane narzędzie `ponytail`. Do tworzenia i zarządzania commitami
-(commit, branch, push) MUSI być używany agent `git-committer` — bezpośrednie
-wywołania `git commit`/`git push` przez innego wykonawcę są zabronione.
-Commit messages MUSZĄ być zgodne z Conventional Commits (`feat:`, `fix:`,
-`refactor:`, `test:`, `docs:`, `chore:` itd.). Przed każdym istotnym commitem
-MUSI zostać uruchomiona pełna weryfikacja (kompilacja, testy Kotest, ktlint,
-detekt) przez `ponytail`.
+Narzędzie `ponytail` MUSI być używane zarówno do **implementacji**, jak i do
+egzekucji/weryfikacji poleceń. Oznacza to, że sam kod (nowe klasy, zadania
+Gradle, rozszerzenia DSL, cinterop wrappery) MUSI być pisany zgodnie z
+zasadami ponytail (YAGNI, reużycie istniejących mechanizmów przed napisaniem
+nowych, stdlib/API platformy przed zależnością, najkrótsza działająca
+implementacja) — nie tylko uruchamiane przez nie na etapie weryfikacji.
+Build, testy, lint i statyczna analiza MUSZĄ być egzekwowane i weryfikowane
+przez `ponytail`. Do tworzenia i zarządzania commitami (commit, branch, push)
+MUSI być używany agent `git-committer` — bezpośrednie wywołania `git
+commit`/`git push` przez innego wykonawcę są zabronione. Commit messages
+MUSZĄ być zgodne z Conventional Commits (`feat:`, `fix:`, `refactor:`,
+`test:`, `docs:`, `chore:` itd.). Przed każdym istotnym commitem MUSI zostać
+uruchomiona pełna weryfikacja (kompilacja, testy Kotest, ktlint, detekt)
+przez `ponytail`.
 
 ## Governance
 
@@ -130,4 +132,4 @@ Każdy plan (`plan.md`) i przegląd kodu MUSI zawierać sekcję Constitution
 Check weryfikującą zgodność z zasadami I–V powyżej. Złamanie zasady bez
 udokumentowanego uzasadnienia w `Complexity Tracking` blokuje scalenie.
 
-**Version**: 1.0.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-02
+**Version**: 1.1.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-02
