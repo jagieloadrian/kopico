@@ -68,12 +68,22 @@ projekt blink
 Brak naruszeń — `Complexity Tracking` pozostaje pusty.
 
 **Re-check po Fazie 1 (design)**: `research.md`, `data-model.md` i
-`contracts/extension-dsl.md` nie wprowadzają nowych naruszeń. Decyzja o
-natywnym `Uf2Writer` w Kotlinie wzmacnia Zasadę II (mniej zależności
-binarnych). Wywołania zewnętrznych narzędzi (`konanc`, `cinterop`,
-`arm-none-eabi-gcc`, `picotool`, `openocd`) przez Gradle `Exec` nie łamią
-Zasady II — to orkiestracja procesów zewnętrznych, nie kod źródłowy pluginu.
-PASS bez zmian.
+`contracts/extension-dsl.md` nie wprowadzają nowych naruszeń. Wywołania
+zewnętrznych narzędzi (`konanc`, `cinterop`, `arm-none-eabi-gcc`,
+`picotool`, `openocd`, `ld.lld`) przez Gradle `Exec` nie łamią Zasady II —
+to orkiestracja procesów zewnętrznych, nie kod źródłowy pluginu. PASS bez
+zmian.
+
+**Re-check po Fazie 0 (PoC, 2026-07-03)**: pipeline zweryfikowany na
+fizycznym sprzęcie wymusił korekty designu (patrz `poc/RESULTS.md`,
+`poc/konan-target-spike.md`): (1) dodany `KotlinNativeProvisioner` z
+patchem atrybutów `.bc`; (2) dodany `LinkTask` — `konanc -produce static`
+daje tylko bibliotekę, finalny ELF powstaje z linku przeciw pico-sdk z
+shimem C i lld; (3) `Uf2Writer` w Kotlinie zastąpiony wywołaniem
+provisionowanego `picotool uf2 convert` (narzędzie i tak wymagane przez
+FR-013 — reużycie zamiast reimplementacji, zgodne z zasadami ponytail;
+zasoby C shim/wrapper/linker-script to pliki wstrzykiwane do builda
+użytkownika, nie kod pluginu — Zasada II nienaruszona). PASS.
 
 ## Project Structure
 
@@ -98,21 +108,29 @@ src/main/kotlin/com/anjo/kopico/
 ├── KopicoExtension.kt           # publiczny DSL: board, sdkPath (Provider/Property)
 ├── BoardVariant.kt              # enum/sealed: pico, pico_w, pico2, pico2_w + triple/CYW43 info
 ├── provisioning/
+│   ├── ToolCache.kt             # <gradleUserHome>/caches/kopico/<narzędzie>/<wersja>/
 │   ├── PicoSdkProvisioner.kt    # klon/cache Pico SDK (FR-013/FR-014)
 │   ├── ArmToolchainProvisioner.kt
 │   ├── PicotoolProvisioner.kt
-│   └── OpenOcdProvisioner.kt
-├── tasks/
-│   ├── CinteropTask.kt          # wywołanie `cinterop` z dystrybucji K/N
-│   ├── CompileNativeTask.kt     # wywołanie `konanc` dla custom targetu
-│   └── GenerateUf2Task.kt       # natywny writer formatu UF2 w Kotlinie
-└── uf2/
-    └── Uf2Writer.kt
+│   ├── OpenOcdProvisioner.kt
+│   └── KotlinNativeProvisioner.kt # dystrybucja K/N 2.4.0 + patch atrybutów .bc (poc § Runda 3)
+└── tasks/
+    ├── CinteropTask.kt          # `cinterop` z override'ami retargetingu
+    ├── CompileNativeTask.kt     # `konanc` z retargetingiem → libapp.a (produce static)
+    ├── LinkTask.kt              # finalny link z pico-sdk: shim C + wrapper + lld + linker script
+    └── GenerateUf2Task.kt       # provisionowany `picotool uf2 convert` na ELF z LinkTask
+
+src/main/resources/kopico/       # zasoby wstrzykiwane do builda użytkownika
+├── kopico_shim.c                # stuby pthread/mmap/TLS/cond_var (poc/blink/kopico_shim.c)
+├── kopico_stdio_globals.c
+├── wrapper.c                    # mostek GPIO/CYW43 + wywołanie main z Kotlina
+└── memmap_kopico.ld             # linker script: .got we FLASH
 
 src/test/kotlin/com/anjo/kopico/
 ├── BoardVariantTest.kt          # Kotest FunSpec
 ├── KopicoExtensionTest.kt
-├── Uf2WriterTest.kt
+├── provisioning/ProvisionersTest.kt
+├── tasks/CinteropTaskTest.kt
 └── KopicoPluginFunctionalTest.kt # Gradle TestKit
 
 examples/blink/

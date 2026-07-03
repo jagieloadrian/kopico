@@ -158,40 +158,66 @@ bez ręcznej interwencji (patrz `quickstart.md` Scenariusz B).
       release'ów `raspberrypi/pico-sdk-tools`) w
       `src/main/kotlin/com/anjo/kopico/provisioning/OpenOcdProvisioner.kt`
       (FR-013)
-- [ ] T022 [US2] Testy Kotest dla provisionerów w
+- [ ] T022 [P] [US2] Zaimplementuj `KotlinNativeProvisioner` (pobranie
+      dystrybucji Kotlin/Native 2.4.0 z GitHub Releases `JetBrains/kotlin`
+      + weryfikacja `.sha256` + cache; **krok post-instalacyjny: patch
+      atrybutów per-funkcja w `konan/targets/linux_arm32_hfp/native/*.bc`**
+      — `clang -x ir → sed target-cpu/target-features → clang -c
+      -emit-llvm`, per `poc/konan-target-spike.md` § Runda 3) w
+      `src/main/kotlin/com/anjo/kopico/provisioning/KotlinNativeProvisioner.kt`
+      (FR-013; research.md § 3 — kompilator K/N jest częścią provisionowanego
+      toolchaina)
+- [ ] T023 [US2] Testy Kotest dla provisionerów w
       `src/test/kotlin/com/anjo/kopico/provisioning/ProvisionersTest.kt`,
       obejmujące explicite: trafienie/brak trafienia w cache, błąd sumy
       kontrolnej → czytelny błąd konfiguracji, **odrzucenie SDK w wersji
-      `< 2.2.0`** (FR-011), oraz **użycie toolchaina już dostępnego w
-      PATH bez pobierania** (FR-012) (zależy od T018-T021)
-- [ ] T023 [US2] Zaimplementuj `CinteropTask` wywołujący CLI `cinterop` dla
+      `< 2.2.0`** (FR-011), **użycie toolchaina już dostępnego w PATH bez
+      pobierania** (FR-012), oraz **idempotencję patcha `.bc`**
+      (dwukrotne uruchomienie = ten sam wynik) (zależy od T018-T022)
+- [ ] T024 [US2] Zaimplementuj `CinteropTask` wywołujący CLI `cinterop` dla
       `pico_stdlib`/`hardware_gpio`/`hardware_pwm` (+ `pico_cyw43_arch` dla
       wariantów `_w`) w
-      `src/main/kotlin/com/anjo/kopico/tasks/CinteropTask.kt` (FR-005,
-      FR-006; zależy od T016, T018)
-- [ ] T024 [US2] Zaimplementuj `CompileNativeTask` wywołujący `konanc` z
-      custom targetem opartym o `BoardVariant` (wykorzystując ustalenia z
-      T009 PoC) w
+      `src/main/kotlin/com/anjo/kopico/tasks/CinteropTask.kt` — z tymi
+      samymi `-Xoverride-konan-properties` co `CompileNativeTask` (bridge w
+      klib niesie atrybuty ARM; per `poc/konan-target-spike.md` § Runda 3)
+      (FR-005, FR-006; zależy od T016, T018, T022)
+- [ ] T025 [US2] Zaimplementuj `CompileNativeTask` wywołujący `konanc` z
+      retargetingiem opartym o `BoardVariant`: jawne flagi per
+      `poc/konan-target-spike.md` § Runda 3 —
+      `-Xoverride-konan-properties` (`targetCpu`, `targetCpuFeatures` z
+      `+thumb-mode,+soft-float`, `targetTriple`,
+      `staticLibraryRelocationMode=static`), `-Xbinary=gc=noop`,
+      `-Xbinary=gcSchedulerType=manual`, `-Xallocator=std`,
+      `-produce static` — w
       `src/main/kotlin/com/anjo/kopico/tasks/CompileNativeTask.kt` (FR-001,
-      FR-004; zależy od T023)
-- [ ] T025 [P] [US2] Zaimplementuj `Uf2Writer` (ELF → bloki UF2) w
-      `src/main/kotlin/com/anjo/kopico/uf2/Uf2Writer.kt` per `research.md`
-      § 4 (FR-002)
-- [ ] T026 [P] [US2] Testy Kotest dla `Uf2Writer` w
-      `src/test/kotlin/com/anjo/kopico/uf2/Uf2WriterTest.kt`
-- [ ] T027 [US2] Zaimplementuj `GenerateUf2Task` łączący wyjście
-      `CompileNativeTask` z `Uf2Writer` w
+      FR-004; zależy od T024)
+- [ ] T026 [US2] Zaimplementuj `LinkTask` — finalne linkowanie
+      `libapp.a` z pico-sdk (boot2, crt0, clocks) do ELF: dostarczenie
+      `kopico_shim.c`, wrappera GPIO/CYW43 i linker scriptu (`.got` we
+      FLASH) jako zasobów pluginu (`src/main/resources/kopico/`),
+      orkiestracja linku przez `arm-none-eabi-g++` + `ld.lld` (wrapper
+      filtrujący flagi bfd-only) per `poc/konan-target-spike.md` § Runda 3
+      i `poc/blink/CMakeLists.txt` — w
+      `src/main/kotlin/com/anjo/kopico/tasks/LinkTask.kt` (FR-007; zależy
+      od T025, T019, T022)
+- [ ] T027 [US2] Zaimplementuj `GenerateUf2Task` wywołujący provisionowany
+      `picotool uf2 convert` na ELF z `LinkTask` w
       `src/main/kotlin/com/anjo/kopico/tasks/GenerateUf2Task.kt` (FR-007;
-      zależy od T024, T025)
+      zależy od T026, T020; własny `Uf2Writer` zbędny — picotool i tak jest
+      provisionowany per FR-013, patrz `research.md` § 4)
 - [ ] T028 [US2] Podłącz w `KopicoPlugin` pełny pipeline zadań (Cinterop →
-      CompileNative → GenerateUf2) oraz walidację/czytelne błędy
+      CompileNative → Link → GenerateUf2) oraz walidację/czytelne błędy
       konfiguracji w fazie configuration w
       `src/main/kotlin/com/anjo/kopico/KopicoPlugin.kt` (FR-008; zależy od
-      T016, T023, T024, T027)
+      T016, T024, T025, T026, T027)
 - [ ] T029 [US2] Uzupełnij `examples/blink` (`build.gradle.kts` stosujący
-      plugin z `board = "pico"`, kod blink w
+      plugin, kod blink w
       `examples/blink/src/nativeMain/kotlin/Main.kt`) per `plan.md` i
-      `quickstart.md` Scenariusz B (zależy od T028)
+      `quickstart.md` Scenariusz B. **Uwaga (lekcja z PoC)**: na wariantach
+      `_w` dioda wisi na CYW43, nie GPIO25 — przykład musi obsługiwać oba
+      przypadki przez routing w warstwie wrappera (per
+      `poc/blink/wrapper.c`), a README przykładu musi wskazywać właściwy
+      `board` dla posiadanej płytki (zależy od T028)
 - [ ] T030 [US2] Test funkcjonalny Gradle TestKit uruchamiający pełny build
       `examples/blink` (pierwsze uruchomienie z siecią — z pomiarem czasu i
       asercją `< 15 minut` per SC-002, potem `--offline` rerun per SC-006)
@@ -202,7 +228,7 @@ bez ręcznej interwencji (patrz `quickstart.md` Scenariusz B).
       cinterop CYW43 dla wszystkich 4 wariantów płytek (`pico`/`pico_w`
       obecność/brak `pico_cyw43_arch`, analogicznie `pico2`/`pico2_w`) w
       `src/test/kotlin/com/anjo/kopico/tasks/CinteropTaskTest.kt` (FR-006,
-      SC-004; zależy od T023)
+      SC-004; zależy od T024)
 - [ ] T032 [US2] Opublikuj plugin lokalnie
       (`./gradlew publishToMavenLocal`) i zweryfikuj, że `examples/blink`
       rozwiązuje go jako zewnętrzny plugin (FR-009; zależy od T028)
@@ -254,8 +280,8 @@ od US1 (poza wykorzystaniem jej ustaleń technicznych z T009/T024).
 - Foundational: T005, T006 równolegle
 - US1: sekwencyjne (T007→T008→T009→T010→T011→T012→T013) — każdy krok
   zależy od poprzedniego stanu środowiska
-- US2: T014/T015 równolegle; T017-T021 równolegle po T016; T025/T026
-  równolegle niezależnie od reszty US2; T031 równolegle z T024+ po T023
+- US2: T014/T015 równolegle; T017-T022 (provisionery + cache) równolegle po
+  T016; T031 równolegle z T025+ po T024
 - Polish: T033, T034, T035 równolegle
 
 ---
@@ -268,6 +294,7 @@ Task: "Implement PicoSdkProvisioner in src/main/kotlin/com/anjo/kopico/provision
 Task: "Implement ArmToolchainProvisioner in src/main/kotlin/com/anjo/kopico/provisioning/ArmToolchainProvisioner.kt"
 Task: "Implement PicotoolProvisioner in src/main/kotlin/com/anjo/kopico/provisioning/PicotoolProvisioner.kt"
 Task: "Implement OpenOcdProvisioner in src/main/kotlin/com/anjo/kopico/provisioning/OpenOcdProvisioner.kt"
+Task: "Implement KotlinNativeProvisioner in src/main/kotlin/com/anjo/kopico/provisioning/KotlinNativeProvisioner.kt"
 ```
 
 ---
@@ -300,7 +327,11 @@ Task: "Implement OpenOcdProvisioner in src/main/kotlin/com/anjo/kopico/provision
 - Każde zadanie implementacyjne (T005+) wykonywane zgodnie z zasadami
   `ponytail` (YAGNI, reużycie, najkrótsza działająca implementacja) — nie
   tylko finalna weryfikacja w T036 (Zasada V konstytucji, v1.1.0)
-- Zero kodu w językach innych niż Kotlin (Zasada II) — dotyczy również
-  skryptów pomocniczych w `poc/` (patrz T012)
+- Zasada II (100% Kotlin) dotyczy kodu źródłowego i logiki **pluginu**.
+  Pliki C będące zasobami runtime docelowego (shim/wrapper/linker script w
+  `src/main/resources/kopico/` i ich pierwowzory w `poc/blink/`) to
+  artefakty wstrzykiwane do builda użytkownika dla bare-metal ARM — nie
+  logika pluginu; C jest tam nieuniknione (mostkowanie sprzętu, ABI).
+  Skrypty pomocnicze/narzędziowe pluginu pozostają wyłącznie w Kotlinie
 - Commituj po każdym zadaniu lub logicznej grupie zadań, delegując commit
   do agenta `git-committer` (Zasada V)

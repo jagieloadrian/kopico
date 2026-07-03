@@ -42,7 +42,7 @@ plugin (FR-013/FR-014): Pico SDK, toolchain ARM, `picotool`, OpenOCD.
 
 | Pole | Typ | Opis |
 |---|---|---|
-| `name` | enum `PICO_SDK` \| `ARM_TOOLCHAIN` \| `PICOTOOL` \| `OPENOCD` | identyfikator narzędzia |
+| `name` | enum `PICO_SDK` \| `ARM_TOOLCHAIN` \| `PICOTOOL` \| `OPENOCD` \| `KOTLIN_NATIVE` | identyfikator narzędzia (K/N dodany po PoC — kompilator jest częścią provisionowanego toolchaina, `research.md` § 3; jego provisioning obejmuje post-instalacyjny patch atrybutów `.bc`) |
 | `pinnedVersion` | `String` | przypięta wersja/tag do pobrania |
 | `cacheDir` | `Directory` | `<gradleUserHome>/caches/kopico/<name>/<pinnedVersion>/` |
 | `sourceUrl` | `String` | adres pobrania (release tarball / git remote) — patrz `research.md` dla konkretnych źródeł |
@@ -59,11 +59,12 @@ Wynik builda gotowy do flashowania.
 
 | Pole | Typ | Opis |
 |---|---|---|
-| `elfFile` | `RegularFile` | pośredni plik wykonywalny z `konanc` (FR-001) |
-| `uf2File` | `RegularFile` | plik wynikowy wygenerowany przez `Uf2Writer` z `elfFile` (FR-002, FR-007) |
+| `staticLib` | `RegularFile` | `libapp.a` z `konanc -produce static` (FR-001) — PoC wykazał, że konanc nie produkuje ELF bezpośrednio |
+| `elfFile` | `RegularFile` | wynik `LinkTask` (link z pico-sdk + shim C + lld) |
+| `uf2File` | `RegularFile` | wynik `GenerateUf2Task` — provisionowany `picotool uf2 convert` (FR-002, FR-007) |
 | `boardVariant` | `BoardVariant` | płytka, dla której artefakt został zbudowany |
 
 **Relacje**: `BuildArtifact` powstaje z `PicoSdkReference` + `BoardVariant` +
-zestawu `ProvisionedTool` (kompilator K/N, toolchain ARM) przez pipeline
-zadań Gradle (`CinteropTask` → `CompileNativeTask` → `GenerateUf2Task`, patrz
-`plan.md` → Project Structure).
+zestawu `ProvisionedTool` (kompilator K/N, toolchain ARM, picotool) przez
+pipeline zadań Gradle (`CinteropTask` → `CompileNativeTask` → `LinkTask` →
+`GenerateUf2Task`, patrz `plan.md` → Project Structure).

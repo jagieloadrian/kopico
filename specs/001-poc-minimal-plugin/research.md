@@ -78,21 +78,21 @@ w spec.md).
 
 ## 4. Generowanie UF2
 
-**Decision**: Format UF2 implementowany natywnie w Kotlinie
-(`Uf2Writer.kt`) — czyta sekcje z pliku ELF i zapisuje bloki UF2 (256-bajtowe
-bloki z nagłówkiem `UF2\n`, zgodnie z publiczną specyfikacją formatu Microsoft
-UF2).
+**Decision (zrewidowana po PoC, 2026-07-03)**: `GenerateUf2Task` wywołuje
+provisionowany `picotool uf2 convert <elf> <uf2> --family <rp2040|rp2350>`.
+Pierwotna decyzja (natywny `Uf2Writer.kt` w Kotlinie) uchylona.
 
-**Rationale**: Format UF2 jest prosty i w pełni udokumentowany publicznie;
-implementacja natywna eliminuje zależność od zewnętrznego binarnego narzędzia
-`elf2uf2` (które i tak wymagałoby budowania z źródeł — nie ma prebuilt
-release'ów), spójne z Zasadą II (100% Kotlin) i ladder ponytail (mniej
-zależności zewnętrznych, gdy format jest trywialny do zaimplementowania).
+**Rationale**: Pierwotna przesłanka ("elf2uf2 wymaga budowania ze źródeł,
+brak prebuilt") zdezaktualizowała się w praktyce PoC: `picotool` — który i
+tak jest provisionowany przez plugin (FR-013, prebuilt z `pico-sdk-tools`)
+— ma wbudowaną komendę `uf2 convert`, użytą z sukcesem w PoC
+(zweryfikowana na fizycznym sprzęcie). Ladder ponytail: istniejąca,
+wymagana zależność > własna implementacja formatu. Zasada II nienaruszona —
+to orkiestracja narzędzia zewnętrznego (jak konanc/gcc), nie kod źródłowy.
 
-**Alternatives considered**: Shell-out do `elf2uf2` z `pico-sdk-tools` —
-odrzucone jako pierwszy wybór (dodatkowa zależność binarna bez prebuilt
-release), zachowane jako potencjalny fallback, jeśli natywna implementacja
-napotka nieoczekiwane problemy w Fazie 0.
+**Alternatives considered**: Natywny `Uf2Writer` w Kotlinie — odrzucony
+jako zbędna reimplementacja; wraca na stół tylko, gdyby picotool przestał
+być provisionowany lub jego `uf2 convert` okazał się niewystarczający.
 
 ## 5. Źródła auto-provisioningu narzędzi (FR-013/FR-014)
 
