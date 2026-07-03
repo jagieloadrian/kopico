@@ -12,9 +12,9 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Weryfikacja pluginu (testy, ktlint, detekt)
-        run: ./gradlew test ktlintCheck detekt
-      - name: Publikacja lokalna
+      - name: Plugin verification (test, ktlint, detekt when 2.0 will be available on mvn central)
+        run: ./gradlew test ktlintCheck
+      - name: Local publish
         run: ./gradlew publishToMavenLocal
       - name: Build examples/blink (SC-005)
         run: ./gradlew -p examples/blink build

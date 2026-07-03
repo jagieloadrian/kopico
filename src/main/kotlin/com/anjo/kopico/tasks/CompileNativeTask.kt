@@ -18,8 +18,10 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 
+@DisableCachingByDefault(because = " Work in progress")
 abstract class CompileNativeTask : DefaultTask() {
     @get:Input
     abstract val boardId: Property<String>
@@ -28,6 +30,7 @@ abstract class CompileNativeTask : DefaultTask() {
     abstract val gradleUserHome: Property<File>
 
     @get:InputFile
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val klibFile: RegularFileProperty
 
     @get:InputFiles

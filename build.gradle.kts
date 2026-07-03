@@ -3,7 +3,7 @@ plugins {
     `maven-publish`
     kotlin("jvm") version "2.4.0"
     id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
-    id("io.gitlab.arturbosch.detekt") version "1.23.7"
+    id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
 group = "com.anjo"
@@ -37,6 +37,10 @@ gradlePlugin {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.detekt {
+    enabled = false // until 2.0 publish on mvn centrl
 }
 
 detekt {
