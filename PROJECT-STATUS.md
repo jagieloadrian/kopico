@@ -21,6 +21,20 @@ Ostatnia aktualizacja: 2026-07-03
   retargetingiem `linux_arm32_hfp`→cortex-m0plus → `libkotlinapp.a` →
   CMake+pico-sdk+lld → ELF → picotool → UF2. Przepis:
   `poc/konan-target-spike.md`; werdykt: `poc/RESULTS.md`.
+- **✅ FAZA 1 (US2 + Polish) ZAKOŃCZONA — T014-T036 (2026-07-03)**: plugin
+  `com.anjo.kopico` w pełni funkcjonalny. Extension DSL `pico { board,
+  sdkPath }` z walidacją w fazie konfiguracji; provisionery (Pico SDK,
+  xPack GCC, picotool, OpenOCD, Kotlin/Native z patchem `.bc` i kompilacją
+  rozgrzewkową dla zależności clang); pipeline `kopicoCinterop →
+  kopicoCompileNative → kopicoLink → kopicoUf2` podpięty pod `build`.
+  Zasoby C z PoC (`wrapper.c`, `kopico_shim.c`, `kopico_stdio_globals.c`,
+  `memmap_kopico.ld`, szablon CMake) w `src/main/resources/kopico/`.
+  28 testów Kotest + E2E TestKit (`KOPICO_E2E=1`): zero-config build →
+  UF2 w 2m16s (SC-002 ✓), `--offline` z cache ✓ (SC-006), `pico_w` bez
+  dodatkowej konfiguracji ✓ (SC-003). `examples/blink` buduje się jako
+  zewnętrzny konsument z Maven Local (FR-009 ✓). README (użycie + "pod
+  maską"), CI: `.github/workflows/build.yml` (SC-005). ktlint/detekt/testy
+  zielone.
 
 ## Kluczowe decyzje
 
@@ -41,6 +55,17 @@ Ostatnia aktualizacja: 2026-07-03
    K/N compiler z GitHub Releases (download.jetbrains.com → 404).
 6. **Warianty `_w`**: dioda na CYW43 (nie GPIO25) — build musi być
    per-płytka; `BoardVariant.hasWifi` wpływa też na LED, nie tylko WiFi.
+7. **gcc z PATH tylko w pinowanej wersji major (15)**: systemowy
+   arm-none-eabi-gcc 13 produkuje ELF z segmentem `.ram_vector_table`
+   z zawartością pliku — picotool odrzuca ("memory contents for
+   uninitialized memory at 0x20000000"). FR-012 zachowane z bramką wersji.
+8. **`Uf2Writer` w Kotlinie porzucony** na rzecz provisionowanego
+   `picotool uf2 convert` (reużycie zamiast reimplementacji; picotool
+   i tak wymagany przez FR-013).
+9. **Jeden klib z wrappera `kopico.h`** zamiast klib-ów per biblioteka
+   SDK; biblioteki SDK per wariant dobiera `CinteropTask.sdkLibrariesFor`,
+   linkuje CMake. cinterop wymaga ścieżek nagłówków newlib
+   (odpytywane z `gcc -E -Wp,-v`) i najnowszego lld z `~/.konan/dependencies`.
 
 ## Znane ograniczenia PoC
 
@@ -51,11 +76,15 @@ Ostatnia aktualizacja: 2026-07-03
 
 ## Następne kroki
 
-1. **Faza 4 tasks.md (US2, T014-T032)**: implementacja właściwego pluginu
-   `com.anjo.kopico` — extension DSL, provisionery, `CinteropTask`,
-   `CompileNativeTask` (wg przepisu z PoC), `Uf2Writer` w Kotlinie,
-   `examples/blink`, testy TestKit.
-2. **Polish (T033-T036)**: README, dokumentacja "pod maską", minimalny CI
-   (jeden job Linux), finalna weryfikacja ponytail.
-3. Rozważyć: automatyzację patcha `.bc` i generacji shim/wrapper jako
-   zadań pluginu (kluczowe dla FR-013 provisioning).
+1. **Merge `feature-1/init-project` → `main`** (feature 001 kompletne:
+   36/36 zadań, wszystkie SC spełnione).
+2. **ROADMAP Faza 2/3**: głębsza integracja SDK (więcej bibliotek Pico
+   SDK w cinterop), zadania `flash`/`debug`/`monitor` (OpenOCD już
+   provisionowany), stabilne publiczne nazwy zadań.
+3. **Warianty RP2350 (`pico2`/`pico2_w`)**: patch `.bc` i retargeting
+   są dziś przypięte do cortex-m0plus/thumbv6m — rozszerzenie o
+   cortex-m33 wymaga osobnej kopii dystrybucji K/N per chip (do
+   zbadania przy Fazie 2); brak weryfikacji sprzętowej RP2350.
+4. Rozważyć weryfikację sprzętową buildu z pluginu (nie tylko PoC) —
+   UF2 z `examples/blink` jest bajtowo zbliżony do sprzętowo
+   potwierdzonego `kblink.uf2`, ale nie był wgrany na płytkę.

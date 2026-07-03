@@ -127,38 +127,38 @@ bez ręcznej interwencji (patrz `quickstart.md` Scenariusz B).
 
 ### Implementation for User Story 2
 
-- [ ] T014 [P] [US2] Zaimplementuj `KopicoExtension` (`board: Property<String>`,
+- [X] T014 [P] [US2] Zaimplementuj `KopicoExtension` (`board: Property<String>`,
       `sdkPath: DirectoryProperty`) w
       `src/main/kotlin/com/anjo/kopico/KopicoExtension.kt` per
       `contracts/extension-dsl.md`
-- [ ] T015 [P] [US2] Testy Kotest dla `KopicoExtension` (walidacja
+- [X] T015 [P] [US2] Testy Kotest dla `KopicoExtension` (walidacja
       nieprawidłowego/brakującego `board`, domyślny `sdkPath`) w
       `src/test/kotlin/com/anjo/kopico/KopicoExtensionTest.kt`
-- [ ] T016 [US2] Zaimplementuj `KopicoPlugin` rejestrujący extension `pico`
+- [X] T016 [US2] Zaimplementuj `KopicoPlugin` rejestrujący extension `pico`
       w `src/main/kotlin/com/anjo/kopico/KopicoPlugin.kt` (zależy od T014)
-- [ ] T017 [P] [US2] Zaimplementuj `ToolCache`
+- [X] T017 [P] [US2] Zaimplementuj `ToolCache`
       (`<gradleUserHome>/caches/kopico/<narzędzie>/<wersja>/`) w
       `src/main/kotlin/com/anjo/kopico/provisioning/ToolCache.kt` per
       `research.md` → Cache lokalny
-- [ ] T018 [P] [US2] Zaimplementuj `PicoSdkProvisioner` (shallow git clone
+- [X] T018 [P] [US2] Zaimplementuj `PicoSdkProvisioner` (shallow git clone
       pinowanego tagu, walidacja wersji `>= 2.2.0`, rozróżnienie
       `USER_PROVIDED`/`AUTO_PROVISIONED`) w
       `src/main/kotlin/com/anjo/kopico/provisioning/PicoSdkProvisioner.kt`
       (FR-003, FR-011, FR-013)
-- [ ] T019 [P] [US2] Zaimplementuj `ArmToolchainProvisioner` (sprawdzenie
+- [X] T019 [P] [US2] Zaimplementuj `ArmToolchainProvisioner` (sprawdzenie
       PATH przed pobraniem, pobranie + checksum + cache z xPack
       `arm-none-eabi-gcc-xpack` gdy brak w PATH/cache) w
       `src/main/kotlin/com/anjo/kopico/provisioning/ArmToolchainProvisioner.kt`
       (FR-012, FR-013)
-- [ ] T020 [P] [US2] Zaimplementuj `PicotoolProvisioner` (pobranie + cache z
+- [X] T020 [P] [US2] Zaimplementuj `PicotoolProvisioner` (pobranie + cache z
       release'ów `raspberrypi/pico-sdk-tools`) w
       `src/main/kotlin/com/anjo/kopico/provisioning/PicotoolProvisioner.kt`
       (FR-013)
-- [ ] T021 [P] [US2] Zaimplementuj `OpenOcdProvisioner` (pobranie + cache z
+- [X] T021 [P] [US2] Zaimplementuj `OpenOcdProvisioner` (pobranie + cache z
       release'ów `raspberrypi/pico-sdk-tools`) w
       `src/main/kotlin/com/anjo/kopico/provisioning/OpenOcdProvisioner.kt`
       (FR-013)
-- [ ] T022 [P] [US2] Zaimplementuj `KotlinNativeProvisioner` (pobranie
+- [X] T022 [P] [US2] Zaimplementuj `KotlinNativeProvisioner` (pobranie
       dystrybucji Kotlin/Native 2.4.0 z GitHub Releases `JetBrains/kotlin`
       + weryfikacja `.sha256` + cache; **krok post-instalacyjny: patch
       atrybutów per-funkcja w `konan/targets/linux_arm32_hfp/native/*.bc`**
@@ -167,21 +167,21 @@ bez ręcznej interwencji (patrz `quickstart.md` Scenariusz B).
       `src/main/kotlin/com/anjo/kopico/provisioning/KotlinNativeProvisioner.kt`
       (FR-013; research.md § 3 — kompilator K/N jest częścią provisionowanego
       toolchaina)
-- [ ] T023 [US2] Testy Kotest dla provisionerów w
+- [X] T023 [US2] Testy Kotest dla provisionerów w
       `src/test/kotlin/com/anjo/kopico/provisioning/ProvisionersTest.kt`,
       obejmujące explicite: trafienie/brak trafienia w cache, błąd sumy
       kontrolnej → czytelny błąd konfiguracji, **odrzucenie SDK w wersji
       `< 2.2.0`** (FR-011), **użycie toolchaina już dostępnego w PATH bez
       pobierania** (FR-012), oraz **idempotencję patcha `.bc`**
       (dwukrotne uruchomienie = ten sam wynik) (zależy od T018-T022)
-- [ ] T024 [US2] Zaimplementuj `CinteropTask` wywołujący CLI `cinterop` dla
+- [X] T024 [US2] Zaimplementuj `CinteropTask` wywołujący CLI `cinterop` dla
       `pico_stdlib`/`hardware_gpio`/`hardware_pwm` (+ `pico_cyw43_arch` dla
       wariantów `_w`) w
       `src/main/kotlin/com/anjo/kopico/tasks/CinteropTask.kt` — z tymi
       samymi `-Xoverride-konan-properties` co `CompileNativeTask` (bridge w
       klib niesie atrybuty ARM; per `poc/konan-target-spike.md` § Runda 3)
       (FR-005, FR-006; zależy od T016, T018, T022)
-- [ ] T025 [US2] Zaimplementuj `CompileNativeTask` wywołujący `konanc` z
+- [X] T025 [US2] Zaimplementuj `CompileNativeTask` wywołujący `konanc` z
       retargetingiem opartym o `BoardVariant`: jawne flagi per
       `poc/konan-target-spike.md` § Runda 3 —
       `-Xoverride-konan-properties` (`targetCpu`, `targetCpuFeatures` z
@@ -191,7 +191,7 @@ bez ręcznej interwencji (patrz `quickstart.md` Scenariusz B).
       `-produce static` — w
       `src/main/kotlin/com/anjo/kopico/tasks/CompileNativeTask.kt` (FR-001,
       FR-004; zależy od T024)
-- [ ] T026 [US2] Zaimplementuj `LinkTask` — finalne linkowanie
+- [X] T026 [US2] Zaimplementuj `LinkTask` — finalne linkowanie
       `libapp.a` z pico-sdk (boot2, crt0, clocks) do ELF: dostarczenie
       `kopico_shim.c`, wrappera GPIO/CYW43 i linker scriptu (`.got` we
       FLASH) jako zasobów pluginu (`src/main/resources/kopico/`),
@@ -200,17 +200,17 @@ bez ręcznej interwencji (patrz `quickstart.md` Scenariusz B).
       i `poc/blink/CMakeLists.txt` — w
       `src/main/kotlin/com/anjo/kopico/tasks/LinkTask.kt` (FR-007; zależy
       od T025, T019, T022)
-- [ ] T027 [US2] Zaimplementuj `GenerateUf2Task` wywołujący provisionowany
+- [X] T027 [US2] Zaimplementuj `GenerateUf2Task` wywołujący provisionowany
       `picotool uf2 convert` na ELF z `LinkTask` w
       `src/main/kotlin/com/anjo/kopico/tasks/GenerateUf2Task.kt` (FR-007;
       zależy od T026, T020; własny `Uf2Writer` zbędny — picotool i tak jest
       provisionowany per FR-013, patrz `research.md` § 4)
-- [ ] T028 [US2] Podłącz w `KopicoPlugin` pełny pipeline zadań (Cinterop →
+- [X] T028 [US2] Podłącz w `KopicoPlugin` pełny pipeline zadań (Cinterop →
       CompileNative → Link → GenerateUf2) oraz walidację/czytelne błędy
       konfiguracji w fazie configuration w
       `src/main/kotlin/com/anjo/kopico/KopicoPlugin.kt` (FR-008; zależy od
       T016, T024, T025, T026, T027)
-- [ ] T029 [US2] Uzupełnij `examples/blink` (`build.gradle.kts` stosujący
+- [X] T029 [US2] Uzupełnij `examples/blink` (`build.gradle.kts` stosujący
       plugin, kod blink w
       `examples/blink/src/nativeMain/kotlin/Main.kt`) per `plan.md` i
       `quickstart.md` Scenariusz B. **Uwaga (lekcja z PoC)**: na wariantach
@@ -218,23 +218,38 @@ bez ręcznej interwencji (patrz `quickstart.md` Scenariusz B).
       przypadki przez routing w warstwie wrappera (per
       `poc/blink/wrapper.c`), a README przykładu musi wskazywać właściwy
       `board` dla posiadanej płytki (zależy od T028)
-- [ ] T030 [US2] Test funkcjonalny Gradle TestKit uruchamiający pełny build
+- [X] T030 [US2] Test funkcjonalny Gradle TestKit uruchamiający pełny build
       `examples/blink` (pierwsze uruchomienie z siecią — z pomiarem czasu i
       asercją `< 15 minut` per SC-002, potem `--offline` rerun per SC-006)
       w
       `src/test/kotlin/com/anjo/kopico/KopicoPluginFunctionalTest.kt` per
       `quickstart.md` Scenariusz B (SC-002, SC-003, SC-006; zależy od T029)
-- [ ] T031 [P] [US2] Testy Kotest dla `CinteropTask` asercjące zachowanie
+- [X] T031 [P] [US2] Testy Kotest dla `CinteropTask` asercjące zachowanie
       cinterop CYW43 dla wszystkich 4 wariantów płytek (`pico`/`pico_w`
       obecność/brak `pico_cyw43_arch`, analogicznie `pico2`/`pico2_w`) w
       `src/test/kotlin/com/anjo/kopico/tasks/CinteropTaskTest.kt` (FR-006,
       SC-004; zależy od T024)
-- [ ] T032 [US2] Opublikuj plugin lokalnie
+- [X] T032 [US2] Opublikuj plugin lokalnie
       (`./gradlew publishToMavenLocal`) i zweryfikuj, że `examples/blink`
       rozwiązuje go jako zewnętrzny plugin (FR-009; zależy od T028)
 
-**Checkpoint**: User Story 2 w pełni funkcjonalna i testowalna niezależnie
-od US1 (poza wykorzystaniem jej ustaleń technicznych z T009/T024).
+**Checkpoint**: ✅ **US2 ZAKOŃCZONE (2026-07-03)** — E2E TestKit: nowy projekt
+z `board = "pico"` bez `sdkPath` → UF2 w 2m16s (SC-002 ✓), rerun `--offline`
+z cache ✓ (SC-006), wariant `pico_w` buduje się bez dodatkowej konfiguracji ✓
+(SC-003). Odstępstwa od pierwotnego opisu zadań (wymuszone empirycznie):
+(1) T024 — cinterop buduje jeden klib z wrappera `kopico.h` (jak w PoC),
+a nie osobne klib-y per biblioteka SDK; zestaw bibliotek SDK per wariant
+(w tym `pico_cyw43_arch_none` dla `_w`) wyznacza `CinteropTask.sdkLibrariesFor`
+i linkuje LinkTask; cinterop dostaje też ścieżki nagłówków newlib odpytane
+z `arm-none-eabi-gcc -E -Wp,-v`. (2) T026 — finalny link orkiestruje CMake
+z pico-sdk (generowany z zasobu `CMakeLists.txt`), nie ręczne wywołanie
+`arm-none-eabi-g++`; lld wybierany jako najnowszy z `~/.konan/dependencies/llvm-*`.
+(3) T019 — gcc z PATH akceptowany tylko w pinowanej wersji major (15);
+systemowy gcc 13 produkuje ELF odrzucany przez picotool
+("memory contents for uninitialized memory at 0x20000000").
+(4) T030 — test E2E bramkowany zmienną `KOPICO_E2E=1` (sieć + minuty
+buildu nie należą do domyślnego `./gradlew test`; CI buduje `examples/blink`
+wprost per T035).
 
 ---
 
@@ -242,18 +257,18 @@ od US1 (poza wykorzystaniem jej ustaleń technicznych z T009/T024).
 
 **Purpose**: Dokumentacja, CI i finalna weryfikacja jakości
 
-- [ ] T033 [P] Napisz `README.md` opisujący użycie pluginu (extension DSL,
+- [X] T033 [P] Napisz `README.md` opisujący użycie pluginu (extension DSL,
       auto-provisioning) z odwołaniem do `contracts/extension-dsl.md` i
       `quickstart.md` (FR-010)
-- [ ] T034 [P] Udokumentuj ręczny proces konfiguracji (na bazie
+- [X] T034 [P] Udokumentuj ręczny proces konfiguracji (na bazie
       `poc/SETUP.md` i `poc/konan-target-spike.md`) jako sekcję "jak to
       działa pod maską" w `README.md` (FR-010)
-- [ ] T035 [P] Utwórz minimalny, jednojobowy, zautomatyzowany workflow CI
+- [X] T035 [P] Utwórz minimalny, jednojobowy, zautomatyzowany workflow CI
       (np. `.github/workflows/build.yml`) budujący `examples/blink` na
       czystym środowisku Linux przy każdym pushu (SC-005) — jeden job, bez
       publikacji artefaktów/release automation (to pozostaje Fazą 5 z
       `ROADMAP.md`)
-- [ ] T036 Uruchom pełną weryfikację przez `ponytail` (ktlint, detekt, cały
+- [X] T036 Uruchom pełną weryfikację przez `ponytail` (ktlint, detekt, cały
       pakiet testów Kotest) dla całego modułu przed uznaniem Fazy 0/1 za
       zakończoną (Zasada V konstytucji)
 
