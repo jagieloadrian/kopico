@@ -117,3 +117,45 @@ Teza "trzeba forkować kompilator" była za kategoryczna —
 bariera przesuwa się z "kompilator nie umie" na "**runtime K/N wymaga
 portu** na środowisko bez wątków OS i bez MMU" — mniejszy, ale wciąż
 wielotygodniowy projekt. Pełna analiza opcji: `poc/RESULTS.md`.
+
+## Runda 3 (2026-07-03): pełny pipeline Kotlin → UF2 — DZIAŁA
+
+Kontynuacja rundy 2 doprowadziła do kompletnego, działającego builda.
+Napotkane i rozwiązane problemy, w kolejności:
+
+1. **`ld.bfd`: "Unknown destination type (ARM/Thumb)" / R_ARM_JUMP24**.
+   Pliki runtime `konan/targets/linux_arm32_hfp/native/*.bc` mają
+   wkompilowane per-funkcyjne atrybuty LLVM `"target-cpu"="arm1176jzf-s"`,
+   `"target-features"="...,-thumb-mode,..."`, które **wygrywają z triple** i
+   generują kod ARM-mode — nielegalny na Armv6-M (Thumb-only). Fix:
+   jednorazowy patch wszystkich `.bc` (backup w `native.bak`):
+   ```bash
+   clang -target thumbv6m-unknown-none-eabi -x ir f.bc -S -emit-llvm -o - \
+     | sed -e 's/"target-cpu"="arm1176jzf-s"/"target-cpu"="cortex-m0plus"/g' \
+           -e 's/"target-features"="[^"]*"/"target-features"="+strict-align,+thumb-mode,+soft-float,-neon,..."/g' \
+     | clang -target thumbv6m-unknown-none-eabi -x ir - -c -emit-llvm -o f.bc
+   ```
+   Uwaga: `clang -x ir` bez `-target` nadpisuje triple hostem (x86_64) —
+   trzeba podać jawnie. Te same override'y muszą iść do `cinterop`
+   (bridge w klib też niesie atrybuty ARM).
+2. **`ld.bfd` nadal nie trawi relokacji Thumb z obiektów LLVM** → link przez
+   `ld.lld` z dystrybucji LLVM K/N (`-fuse-ld=lld -B<dir>`); 3-liniowy
+   wrapper filtruje flagę `--no-warn-rwx-segments` (bfd-only).
+3. **PIC → `.got` w RAM bez LMA** (picotool: "memory contents for
+   uninitialized memory"). Fix: `staticLibraryRelocationMode.linux_arm32_hfp=static`
+   w override'ach + kopia `memmap_default.ld` z `*(.got*)` w sekcji FLASH
+   (wpisy GOT rozwiązane statycznie = read-only).
+4. **`__aeabi_read_tp`** (local-exec TLS po przejściu na static) — naked-asm
+   stub zwracający statyczny blok (specjalne ABI: wolno ruszyć tylko r0).
+5. **`std::condition_variable`** — libstdc++ w arm-none-eabi jest
+   single-thread i nie ma tych symboli; no-op stuby pod zmanglowanymi
+   nazwami (poprawne identyfikatory C).
+6. **`stdout`/`stderr`** — w newlib to makra, nie symbole; osobny TU
+   definiuje globale i konstruktor podstawia realne strumienie newlib.
+
+**Wynik**: `kblink.elf` (340 funkcji Kotlin, entry point Thumb 0x100001e9,
+`kfun:#main` zdisasemblowany jako czysty Thumb-1) → `kblink.uf2` (544 KB,
+`picotool info` czyta poprawnie, family rp2040, binarka
+0x10000000-0x100426d0). Kompletny przepis reprodukcji: `poc/blink/`
+(CMakeLists.txt, wrapper.c, kopico_shim.c, kopico_stdio_globals.c,
+memmap_kopico.ld, lld-wrap/).

@@ -48,3 +48,7 @@ bin/
 poc/toolchain/
 poc/pico-sdk/
 poc/kotlin-native/
+poc/blink/build-*/
+poc/blink/libkotlinapp.a
+poc/blink/*_api.h
+poc/interop/pico.klib

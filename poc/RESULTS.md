@@ -1,16 +1,66 @@
 # PoC Results — Bramka go/no-go (T013)
 
-**Data**: 2026-07-03
+**Data**: 2026-07-03 (runda 3 — finalna)
 
-## Werdykt: **PORAŻKA w pierwotnym podejściu, ale ODKRYTO działającą ścieżkę codegen** (2026-07-03, runda 2)
+## Werdykt: **SUKCES BUILDU END-TO-END** — Kotlin → UF2 działa; pozostała wyłącznie walidacja na fizycznym sprzęcie (T013)
 
 | Krok | Status | Dowód |
 |---|---|---|
 | T007 — toolchain ARM + Pico SDK 2.2.0 | ✅ Sukces | `poc/SETUP.md` |
 | T008 — kompilator Kotlin/Native 2.4.0 | ✅ Sukces (po korekcie URL) | `poc/SETUP.md` |
-| T009 — nowy custom target (nazwa nierozpoznana) | ❌ Porażka empiryczna | `poc/konan-target-spike.md` |
-| T009b — **retargeting istniejącego targetu przez `-Xoverride-konan-properties`** | ✅ **Codegen działa** (patrz niżej), ❌ finalny link i runtime nie | `poc/konan-target-spike.md` § "Runda 2" |
-| T010-T013 | ⏸️ Nie wykonane — nie ma sensu przed rozstrzygnięciem runtime'u (patrz niżej) | — |
+| T009 — nowy custom target (nazwa nierozpoznana) | ❌ Porażka (obejście znalezione niżej) | `poc/konan-target-spike.md` |
+| T009b — retargeting przez `-Xoverride-konan-properties` | ✅ Codegen działa | `poc/konan-target-spike.md` § "Runda 2" |
+| T009c — **patch atrybutów w runtime `.bc` + shim C + lld + linker script** | ✅ **Pełny link działa** | `poc/konan-target-spike.md` § "Runda 3" |
+| T010 — cinterop (`pico.klib` z wrapperami GPIO) | ✅ Sukces (wymaga tych samych override'ów co konanc) | `poc/interop/` |
+| T011 — kompilacja blink Kotlin → ELF | ✅ Sukces — `kblink.elf`, 340 funkcji Kotlin, czysty Thumb-1 (entry 0x100001e9) | `poc/blink/` |
+| T012 — konwersja ELF → UF2 | ✅ Sukces — `kblink.uf2` (544 KB), poprawnie czytany przez `picotool info` | `poc/blink/build-k/` |
+| T013 — flash na fizyczne urządzenie i wizualna weryfikacja diody | ⏸️ **JEDYNY brakujący krok** — wymaga fizycznego Pico (BOOTSEL → skopiuj `kblink.uf2`) | — |
+
+## Działający pipeline (runda 3)
+
+```
+Main.kt ──konanc──▶ libkotlinapp.a ──┐
+  (-target linux_arm32_hfp           │
+   -Xoverride-konan-properties=      ├──CMake+pico-sdk+lld──▶ kblink.elf ──picotool──▶ kblink.uf2
+     cortex-m0plus/thumbv6m/static   │
+   -Xbinary=gc=noop -Xallocator=std) │
+pico.klib (cinterop, te same         │
+  override'y) ───────────────────────┤
+kopico_shim.c (~150 linii stubów) ───┤
+wrapper.c (mostek GPIO + main) ──────┘
+```
+
+Niezbędne komponenty (wszystkie w `poc/blink/`):
+1. **Patch atrybutów `.bc`**: pliki runtime w `konan/targets/linux_arm32_hfp/native/*.bc`
+   mają wkompilowane per-funkcyjne atrybuty `target-cpu="arm1176jzf-s"`/`-thumb-mode`,
+   które wygrywają z triple i generują kod ARM-mode (nielegalny na Armv6-M).
+   Jednorazowy rewrite: `clang -x ir → sed atrybutów → clang -c -emit-llvm`
+   (backup w `native.bak`). To samo `-Xoverride-konan-properties` musi być
+   podane też do `cinterop` (bridge klib też niesie atrybuty).
+2. **`staticLibraryRelocationMode=static`** w override'ach — bez tego kod jest
+   PIC i tworzy `.got`, którego linker script Pico nie umieszcza we flashu.
+3. **Shim C** (`kopico_shim.c`, ~150 linii): pthread no-op (single thread),
+   mmap → statyczna arena 64KB, `__aeabi_read_tp` (naked asm) + `__tls_get_addr`,
+   stuby `std::condition_variable` (libstdc++ arm-none-eabi jest single-thread),
+   `stdout`/`stderr` jako symbole (w newlib to makra), `sleep`/`dladdr`/`syscall`.
+4. **Linker: `ld.lld`** (z dystrybucji LLVM K/N) zamiast `ld.bfd` — bfd nie
+   trawi relokacji Thumb z obiektów LLVM; 3-liniowy wrapper filtruje
+   flagę `--no-warn-rwx-segments`, której lld nie zna.
+5. **Linker script**: kopia `memmap_default.ld` + `*(.got*)` do FLASH.
+
+## Znane ograniczenia zbudowanego artefaktu
+
+- `gc=noop` — pamięć alokowana, nigdy nie zwalniana; dla blink/prostych
+  aplikacji OK, dla długożyjących wymaga zbadania `gc=stms` + shim wątków.
+- Runtime zajmuje ~266KB flash (z 2MB) i ~72KB statycznego RAM (z 264KB) —
+  akceptowalne, ale optymalizacja rozmiaru to osobny temat (Faza 4 ROADMAP).
+- Patch `.bc` modyfikuje dystrybucję kompilatora — plugin będzie musiał robić
+  to samo automatycznie w swoim cache (deterministyczny, jednorazowy krok).
+- `linux_arm32_hfp` jest deprecated — wersja K/N przypięta konstytucją (2.4.0),
+  więc stabilne, ale migracja na nowszą wersję K/N wymaga re-walidacji.
+- **Nieprzetestowane na sprzęcie** — statyczna poprawność (Thumb-1, ABI,
+  layout pamięci) zweryfikowana narzędziowo, ale runtime init (konstruktory
+  globalne K/N, inicjalizacja stdlib) może jeszcze zaskoczyć na żywym chipie.
 
 ## Runda 2: `-Xoverride-konan-properties` — ważna korekta
 
@@ -56,49 +106,27 @@ projekt inżynierski, nie coś do zrobienia w ramach PoC.
 Ticket KT-44498 (`research.md` § 1) pozostaje otwarty, bez przypisania i
 bez planowanej wersji — oficjalne wsparcie nie jest w drodze.
 
-## Rekomendacja
+## Rekomendacja (po rundzie 3)
 
-**Nie kontynuować Fazy 4 (US2 — plugin) w obecnym kształcie**, dopóki
-fundamentalne założenie architektoniczne (Kotlin/Native na bare-metal
-Cortex-M) nie zostanie potwierdzone jako wykonalne end-to-end (włącznie z
-działającym runtime na sprzęcie) lub świadomie zaakceptowane jako projekt
-dużo większy niż "Faza 0/1: PoC + minimalny plugin". To wymaga decyzji
-użytkownika.
+Wcześniejsze rekomendacje (runda 1: "wymaga forka kompilatora", runda 2:
+"wymaga wielotygodniowego portu runtime'u") okazały się zbyt pesymistyczne.
+Runda 3 pokazała, że przewidywany "port runtime'u" sprowadził się do
+**~150 linii stubów C + patch atrybutów `.bc` + lld + poprawka linker
+scriptu** — wykonane w całości w ramach tego spike'u, z działającym UF2 na
+końcu. Historia rund 1-2 powyżej zachowana celowo jako zapis procesu
+dochodzenia do rozwiązania.
 
-**Ważna zmiana względem pierwszej rundy**: nie trzeba forkować/rekompilować
-kompilatora, żeby uzyskać codegen dla Cortex-M — `-Xoverride-konan-properties`
-to załatwia. Prawdziwa bariera to **port runtime'u K/N** (zastąpienie
-`pthread_*`/`mmap` odpowiednikami działającymi bez OS/MMU) — mniejszy
-projekt niż fork kompilatora, ale wciąż wielotygodniowy/wielomiesięczny, nie
-"spike".
-
-Możliwe kierunki (do decyzji, nie zrealizowane w ramach tego spike'u):
-1. **Port runtime'u K/N na bare-metal** (bez forka kompilatora) — zastąpić
-   `pthread_*` współpracującym schedulerem/FreeRTOS i zaimplementować
-   alokator bez `mmap` (statyczna pula), używając `-Xoverride-konan-properties`
-   do retargetingu codegen. Wielotygodniowy projekt R&D, wysokie ryzyko
-   (nieznane, ile jeszcze zależności "wypłynie" po podłączeniu runtime'u),
-   ale mniejszy niż fork kompilatora.
-2. ~~**Zmiana architektury**: pośredni artefakt LLVM/C~~ — **ZBADANE i
-   ODRZUCONE (2026-07-03)**. `-produce bitcode` jest jawnie wyłączone w
-   2.4.0 (`error: Bitcode output kind is obsolete`). `-Xsave-llvm-ir-after`
-   działa tylko w ramach kompilacji dla już wybranego, wspieranego targetu
-   — nie omija wymogu `-target`. Decydujący dowód: `runtime.bc` (GC,
-   alokator, obsługa wyjątków K/N) jest prekompilowany **per-target** i
-   istnieje wyłącznie dla wspieranych targetów — nie ma generycznej wersji.
-   Nawet wydobyty LLVM IR byłby zlinkowany z runtime'em dla hostowanego OS
-   i nie dałby się dalej skompilować pod bare-metal — ta sama przyczyna
-   źródłowa co brak wsparcia runtime'u (opcja 1: pthread/mmap).
-3. **Zawężenie zakresu projektu**: Kotlin/Native tylko na hostowany Linux
-   ARM (np. Raspberry Pi pełnoprawny SBC, nie mikrokontroler Pico) —
-   zmienia fundamentalnie cel projektu z `ROADMAP.md`, ale unika portu
-   runtime'u całkowicie (hostowany Linux ma prawdziwe `pthread`/`mmap`).
-4. **Fork i rekompilacja kompilatora** (rejestracja natywnego
-   `KonanTarget` zamiast retargetingu przez `-Xoverride-konan-properties`)
-   — opcja maksymalna, dająca pełną kontrolę, ale największy nakład
-   (miesiące, wysokie ryzyko, wymaga też portu runtime'u jak w opcji 1).
-   Racjonalna tylko jeśli opcja 1 okaże się niewystarczająca (np. limity
-   `-Xoverride-konan-properties` ujawnione dopiero głębiej w spike'u).
-
-**To nie jest decyzja, którą mogę podjąć autonomicznie** — zmienia
-fundamentalne założenia `ROADMAP.md` i konstytucji projektu.
+**Rekomendowany dalszy krok**:
+1. **T013 (użytkownik, fizyczny sprzęt)**: wgrać
+   `poc/blink/build-k/kblink.uf2` na Pico (BOOTSEL) i zweryfikować mruganie
+   diody. To ostateczna walidacja bramki go/no-go — statyczna poprawność
+   jest potwierdzona narzędziowo, ale runtime init na żywym chipie może
+   jeszcze ujawnić problemy.
+2. **Po pozytywnym T013**: odblokować Fazę 4 (US2 — plugin), którego
+   zadania (`CompileNativeTask`, provisioning) mają teraz kompletny,
+   udokumentowany przepis techniczny: override'y konan.properties, patch
+   `.bc` w cache narzędzi, generacja shim/wrapper, lld, linker script.
+3. **W razie negatywnego T013**: debugować runtime init (prawdopodobne
+   pierwsze podejrzenia: konstruktory globalne, kolejność inicjalizacji
+   `kotlinapp_symbols()`, rozmiar areny mmap) — wracamy do spike'u, nie do
+   zmiany architektury.

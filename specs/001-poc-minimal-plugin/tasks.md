@@ -88,28 +88,28 @@ mruganie diody LED.
       — **WYNIK: PORAŻKA, empirycznie potwierdzona** (`-target` waliduje
       względem zamkniętego enuma wkompilowanego w kompilator, przed
       odczytem `konan.properties`; patrz `poc/konan-target-spike.md`)
-- [ ] T010 [US1] **ZABLOKOWANE przez wynik T009** — nie wykonane. Napisz
-      minimalny plik `.def` dla cinterop (`pico_stdlib`/`hardware_gpio`) w
-      `poc/interop/pico_stdlib.def` i wygeneruj klib przez CLI `cinterop` z
-      `poc/kotlin-native/`
-- [ ] T011 [US1] **ZABLOKOWANE przez wynik T009** — nie wykonane. Napisz
-      minimalny kod blink (pętla `gpio_put`) w `poc/blink/Main.kt` i
-      skompiluj go do ELF przez `konanc` z custom targetem z T009 (zależy
-      od T009, T010)
-- [ ] T012 [US1] **ZABLOKOWANE przez T011** — nie wykonane. Zaimplementuj w
-      Kotlinie samodzielny skrypt konwersji ELF → UF2 w
-      `poc/uf2/Uf2FromElf.kt` (zależy od T011)
-- [ ] T013 [US1] **ZABLOKOWANE przez T012 + brak dostępu do fizycznego
-      sprzętu w tym środowisku** — nie wykonane. Wgraj `blink.uf2` na
-      fizyczne urządzenie Pico w trybie BOOTSEL, potwierdź wizualnie
-      mruganie diody LED i zapisz wynik w `poc/RESULTS.md` (zależy od T012)
+- [X] T010 [US1] Napisz minimalny plik `.def` dla cinterop w
+      `poc/interop/pico_stdlib.def` i wygeneruj klib przez CLI `cinterop` —
+      **wykonane** (klib z wrapperami GPIO; wymaga tych samych
+      `-Xoverride-konan-properties` co konanc, patrz
+      `poc/konan-target-spike.md` § Runda 3)
+- [X] T011 [US1] Napisz minimalny kod blink w `poc/blink/Main.kt` i
+      skompiluj do ELF — **wykonane** (przez retargeting
+      `linux_arm32_hfp`→cortex-m0plus + patch atrybutów `.bc` + shim C +
+      lld + custom linker script; `kblink.elf`, 340 funkcji Kotlin, czysty
+      Thumb-1)
+- [X] T012 [US1] Konwersja ELF → UF2 — **wykonane** przez `picotool uf2
+      convert` (systemowy picotool; własny `Uf2FromElf.kt` w Kotlinie
+      zbędny na etapie PoC — `Uf2Writer` pluginu powstanie w T025/US2)
+- [ ] T013 [US1] **CZEKA NA FIZYCZNY SPRZĘT** (jedyny brakujący krok PoC).
+      Wgraj `poc/blink/build-k/kblink.uf2` na fizyczne urządzenie Pico w
+      trybie BOOTSEL, potwierdź wizualnie mruganie diody LED i zapisz wynik
+      w `poc/RESULTS.md`
 
-**Checkpoint**: `poc/RESULTS.md` zawiera werdykt bramki go/no-go:
-**PORAŻKA** w obecnym zakresie/podejściu — custom target Kotlin/Native dla
-bare-metal ARM Cortex-M nie jest osiągalny bez forka kompilatora. Zgodnie z
-`plan.md` → Summary wymagana jest eskalacja do użytkownika przed
-kontynuacją Fazy 4 (US2) — **zatrzymano tutaj, nie kontynuowano dalszej
-implementacji US2 bez decyzji użytkownika.**
+**Checkpoint**: `poc/RESULTS.md` (runda 3): **pipeline Kotlin → UF2 działa
+end-to-end**; bramka go/no-go domknięta warunkowo — pozostała wyłącznie
+walidacja na fizycznym urządzeniu (T013, wymaga użytkownika ze sprzętem).
+Pełny przepis techniczny dla Fazy 4 (US2): `poc/konan-target-spike.md`.
 
 ---
 
