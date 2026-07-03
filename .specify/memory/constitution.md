@@ -5,30 +5,30 @@ Modified principles: none
 Added sections: none
 Removed sections: none
 Modified sections:
-  - I. Ścisła kontrola wersji toolchainu — Nota techniczna zaktualizowana po
-    pozytywnym T013: technika retargetingu potwierdzona na fizycznym
-    Raspberry Pi Pico W (blink z kodu Kotlin działa). Usunięto zastrzeżenie
-    "walidacja w toku". Czysto informacyjna aktualizacja — PATCH.
+  - I. Strict toolchain version control — Technical note updated after
+    a successful T013: the retargeting technique confirmed on a physical
+    Raspberry Pi Pico W (blink from Kotlin code works). Removed the caveat
+    "validation in progress". Purely informational update — PATCH.
 Follow-up TODOs: none
 -->
 
 <!--
-LEGACY Sync Impact Report (v1.1.0 → v1.2.0, zachowane dla historii)
+LEGACY Sync Impact Report (v1.1.0 → v1.2.0, kept for history)
 Version change: 1.1.0 → 1.2.0
 Modified principles: none renamed
 Added sections: none (existing section expanded)
 Removed sections: none
 Modified sections:
-  - Zakres domenowy: Raspberry Pi Pico Toolchain — dodano konkretne wymagania
-    domenowe wyekstrahowane z ROADMAP.md (triple targetów, minimalny kształt
-    extension DSL, cinterop CYW43 dla wariantów _w, zadania Gradle dla pełnego
-    cyklu build/UF2/flash/debug, zakres przyszłych faz PIO/multicore/power
-    management jako niewymagany wcześnie). Odnotowano jawny konflikt: plan
-    źródłowy sugerował Kotlin Multiplatform — odrzucony, Zasada I (zakaz KMP)
-    pozostaje w mocy bez zmian.
+  - Domain scope: Raspberry Pi Pico Toolchain — added concrete domain
+    requirements extracted from ROADMAP.md (target triples, minimal shape
+    of the extension DSL, CYW43 cinterop for `_w` variants, Gradle tasks for
+    the full build/UF2/flash/debug cycle, scope of future PIO/multicore/power
+    management phases as not required early). Noted an explicit conflict: the
+    source plan suggested Kotlin Multiplatform — rejected, Principle I (KMP
+    ban) remains in force unchanged.
 Added artifacts (outside constitution):
-  - ROADMAP.md — pełny plan fazowy (Faza 0-5) implementacji pluginu,
-    zaadaptowany do custom Kotlin/Native target zamiast KMP.
+  - ROADMAP.md — the full phased plan (Phase 0-5) for the plugin
+    implementation, adapted to a custom Kotlin/Native target instead of KMP.
 Templates requiring updates:
   - .specify/templates/plan-template.md ✅ no changes needed (Constitution Check gate is generic, resolved at plan time)
   - .specify/templates/spec-template.md ✅ no changes needed (technology-agnostic by design)
@@ -41,149 +41,149 @@ Follow-up TODOs: none
 
 ## Core Principles
 
-### I. Ścisła kontrola wersji toolchainu
+### I. Strict toolchain version control
 
-Projekt MUSI używać dokładnie Gradle 9.5.1 i Kotlin 2.4.0 — żadnych zakresów
-wersji (`+`, `latest.release`) ani wersji zbliżonych. Plugin MUSI działać w
-trybie czystego Kotlin/Native (custom native target lub
-`org.jetbrains.kotlin.platform.native`) — użycie Kotlin Multiplatform (`kotlin("multiplatform")`)
-jest zabronione. Każda zmiana tych wersji wymaga jawnej decyzji i aktualizacji
-tej konstytucji.
+The project MUST use exactly Gradle 9.5.1 and Kotlin 2.4.0 — no version
+ranges (`+`, `latest.release`) or near-equivalent versions. The plugin MUST
+operate in pure Kotlin/Native mode (custom native target or
+`org.jetbrains.kotlin.platform.native`) — using Kotlin Multiplatform
+(`kotlin("multiplatform")`) is forbidden. Any change to these versions
+requires an explicit decision and an update to this constitution.
 
-**Rationale**: Pico SDK, cinterop i generowanie UF2 są wrażliwe na zmiany w
-Kotlin/Native ABI i Gradle toolchain resolution; sztywne wersje eliminują całą
-klasę błędów "działa u mnie" oraz niekompatybilności między środowiskami CI a
-lokalnymi.
+**Rationale**: The Pico SDK, cinterop, and UF2 generation are sensitive to
+changes in the Kotlin/Native ABI and Gradle toolchain resolution; pinned
+versions eliminate an entire class of "works on my machine" bugs and
+incompatibilities between CI and local environments.
 
-**ℹ️ Nota techniczna (2026-07-03, potwierdzona na sprzęcie)**:
-Kotlin/Native 2.4.0 nie pozwala zarejestrować *nowej nazwy* targetu, ale
-spike (`specs/001-poc-minimal-plugin/poc/`) potwierdził — **włącznie z
-walidacją na fizycznym Raspberry Pi Pico W** — działające obejście:
-retargeting istniejącego targetu `linux_arm32_hfp` przez
+**Technical note (2026-07-03, confirmed on hardware)**:
+Kotlin/Native 2.4.0 does not allow registering a *new named* target, but
+the spike (`specs/001-poc-minimal-plugin/poc/`) confirmed — **including
+validation on a physical Raspberry Pi Pico W** — a working workaround:
+retargeting the existing `linux_arm32_hfp` target via
 `-Xoverride-konan-properties` (cortex-m0plus/thumbv6m-none-eabi, static
-reloc) + jednorazowy patch atrybutów per-funkcja w runtime `.bc` + warstwa
-stubów C (pthread/mmap/TLS) + link przez `ld.lld`. "Custom native target"
-w tej zasadzie realizowany jest właśnie przez ten mechanizm retargetingu —
-pełny przepis: `poc/konan-target-spike.md`.
+reloc) + a one-time per-function attribute patch in the runtime `.bc` + a
+layer of C stubs (pthread/mmap/TLS) + linking via `ld.lld`. The "custom
+native target" in this principle is realized precisely through this
+retargeting mechanism — full recipe: `poc/konan-target-spike.md`.
 
-### II. 100% Kotlin, zero Javy
+### II. 100% Kotlin, zero Java
 
-Cały kod źródłowy, buildscripty i logika pluginu MUSZĄ być napisane w Kotlinie
-(Kotlin DSL dla Gradle, brak plików `.java`). Całe logowanie w pluginie MUSI
-przechodzić przez `io.github.oshai:kotlin-logging` — zabronione jest bezpośrednie
-użycie SLF4J, `println` do logowania stanu, czy innych bibliotek logujących.
+All source code, build scripts, and plugin logic MUST be written in Kotlin
+(Kotlin DSL for Gradle, no `.java` files). All logging in the plugin MUST go
+through `io.github.oshai:kotlin-logging` — direct use of SLF4J, `println`
+for state logging, or other logging libraries is forbidden.
 
-**Rationale**: Jednolity język i jedna biblioteka logująca upraszczają
-utrzymanie, eliminują konieczność mostkowania Java/Kotlin interop i zapewniają
-spójny format logów w całym pluginie.
+**Rationale**: A single language and a single logging library simplify
+maintenance, eliminate the need for Java/Kotlin interop bridging, and ensure
+a consistent log format across the whole plugin.
 
-### III. Test-First w Kotest (NON-NEGOTIABLE)
+### III. Test-First in Kotest (NON-NEGOTIABLE)
 
-Wszystkie testy (jednostkowe, integracyjne, testy pluginu z `TestKit`) MUSZĄ
-być napisane w Kotest — użycie JUnit bezpośrednio (adnotacje `@Test` z
-`org.junit`) jest zabronione, nawet jeśli Kotest uruchamia się przez silnik
-JUnit Platform pod spodem. Nowa funkcjonalność publiczna (zadania Gradle,
-rozszerzenia DSL, cinterop wrappery) MUSI mieć pokrycie testowe przed
-scaleniem.
+All tests (unit, integration, plugin tests via `TestKit`) MUST be written in
+Kotest — using JUnit directly (`@Test` annotations from `org.junit`) is
+forbidden, even though Kotest runs on the JUnit Platform engine under the
+hood. New public functionality (Gradle tasks, DSL extensions, cinterop
+wrappers) MUST have test coverage before merging.
 
-**Rationale**: Kotest daje czytelne DSL (`FunSpec`, `BehaviorSpec`),
-property-based testing i lepsze asercje niż JUnit; jeden framework testowy
-zapobiega fragmentacji stylu testów w małym projekcie.
+**Rationale**: Kotest provides a readable DSL (`FunSpec`, `BehaviorSpec`),
+property-based testing, and better assertions than JUnit; a single testing
+framework prevents test-style fragmentation in a small project.
 
-### IV. Best Practices Gradle Plugin
+### IV. Gradle Plugin Best Practices
 
-Plugin MUSI być zbudowany zgodnie z uznanymi wzorcami pisania Gradle Pluginów
-w Kotlinie: `java-gradle-plugin` do rejestracji i publikacji, convention
-plugins do dzielenia wspólnej konfiguracji, jasno odseparowane `extension`
-(publiczne DSL) od wewnętrznej logiki `tasks`/`providers`. Publiczny DSL MUSI
-być minimalny i deklaratywny — konfiguracja przez `Provider`/`Property`, nie
-przez mutowalne pola.
+The plugin MUST be built following established patterns for writing Gradle
+plugins in Kotlin: `java-gradle-plugin` for registration and publication,
+convention plugins to share common configuration, and a clear separation
+between the `extension` (public DSL) and internal `tasks`/`providers` logic.
+The public DSL MUST be minimal and declarative — configuration via
+`Provider`/`Property`, not mutable fields.
 
-**Rationale**: Zgodność z konwencjami ekosystemu Gradle ułatwia
-konfigurowalność (lazy configuration, configuration cache) i obniża koszt
-wejścia dla przyszłych kontrybutorów znających standardowe pluginy Gradle.
+**Rationale**: Compliance with Gradle ecosystem conventions improves
+configurability (lazy configuration, configuration cache) and lowers the
+entry barrier for future contributors familiar with standard Gradle plugins.
 
-### V. Jakość i statyczna analiza (NON-NEGOTIABLE)
+### V. Quality and Static Analysis (NON-NEGOTIABLE)
 
-Każda zmiana kodu MUSI przechodzić `ktlint` (formatowanie) i `detekt`
-(statyczna analiza) bez naruszeń przed commitem. Weryfikacja (build, testy
-Kotest, ktlint, detekt) MUSI być uruchamiana przez narzędzie `ponytail` przed
-każdym commitem. Commity i operacje git (branch, commit, push) MUSZĄ być
-wykonywane wyłącznie przez agenta `git-committer`, z wiadomościami w
-konwencji Conventional Commits.
+Every code change MUST pass `ktlint` (formatting) and `detekt` (static
+analysis) with no violations before committing. Verification (build, Kotest
+tests, ktlint, detekt) MUST be run via the `ponytail` tool before every
+commit. Commits and git operations (branch, commit, push) MUST be performed
+exclusively by the `git-committer` agent, with messages following the
+Conventional Commits convention.
 
-**Rationale**: Twarde bramki jakości (formatowanie + statyczna analiza +
-testy) uruchamiane spójnym mechanizmem przed każdym commitem zapobiegają
-degradacji jakości w małym zespole/solo-projekcie, gdzie nie ma
-wielostopniowego code review.
+**Rationale**: Hard quality gates (formatting + static analysis + tests) run
+by a consistent mechanism before every commit prevent quality degradation in
+a small/solo project, where there is no multi-stage code review.
 
-## Zakres domenowy: Raspberry Pi Pico Toolchain
+## Domain scope: Raspberry Pi Pico Toolchain
 
-Plugin `com.anjo.kopico` (group `com.anjo`, artifact `kopico`) MUSI
-umożliwiać pisanie kodu Kotlin/Native dla Raspberry Pi Pico, Pico W, Pico 2 i
-Pico 2 W (mikrokontrolery RP2040 i RP2350). Zakres funkcjonalny obejmuje:
-konfigurację toolchaina Kotlin/Native pod docelową architekturę, cinterop z
-Pico SDK, generowanie plików UF2 oraz flashowanie urządzenia. Każda nowa
-funkcjonalność domenowa MUSI jawnie deklarować, dla których wariantów płytki
-(RP2040/RP2350) jest wspierana — brak wsparcia dla wariantu MUSI być
-udokumentowany, nie domyślnie zakładany. Szczegółowy harmonogram wdrożenia
-(fazy, deliverables, ryzyka) znajduje się w `ROADMAP.md`; ta sekcja definiuje
-trwałe wymagania wynikające z tego planu, obowiązujące niezależnie od fazy.
+The `com.anjo.kopico` plugin (group `com.anjo`, artifact `kopico`) MUST
+enable writing Kotlin/Native code for Raspberry Pi Pico, Pico W, Pico 2, and
+Pico 2 W (RP2040 and RP2350 microcontrollers). The functional scope covers:
+configuring the Kotlin/Native toolchain for the target architecture, cinterop
+with the Pico SDK, UF2 file generation, and flashing the device. Any new
+domain functionality MUST explicitly declare which board variants
+(RP2040/RP2350) it supports — lack of support for a variant MUST be
+documented, not assumed by default. The detailed rollout schedule (phases,
+deliverables, risks) is in `ROADMAP.md`; this section defines the durable
+requirements arising from that plan, applicable regardless of phase.
 
-Konkretne wymagania domenowe:
+Specific domain requirements:
 
-- Plugin MUSI wspierać docelowe triple: `thumbv6m-none-eabi` dla RP2040 oraz
-  `thumbv8m.main-none-eabi` / `thumbv8m.main-none-eabihf` dla RP2350,
-  konfigurowane przez custom target Kotlin/Native (zgodnie z Zasadą I — bez
-  KMP).
-- Publiczny extension DSL MUSI udostępniać co najmniej wybór płytki
-  (`board = "pico" | "pico_w" | "pico2" | "pico2_w"`) i ścieżkę do Pico SDK
-  (`sdkPath`).
-- Warianty `_w` (Pico W, Pico 2 W) MUSZĄ automatycznie konfigurować cinterop
-  dla `pico_cyw43_arch` (CYW43/WiFi) — warianty bez `_w` MUSZĄ pomijać ten
-  cinterop domyślnie.
-- Plugin MUSI dostarczać zadania Gradle pokrywające pełny cykl: budowanie
-  binarki, generowanie UF2, flashowanie (przez `picotool` lub OpenOCD) i
-  debugowanie (GDB + OpenOCD) — nazwy zadań i dokładny zakres ustala plan
-  fazy zgodnie z `ROADMAP.md`.
-- Docelowo (Faza 4+ w `ROADMAP.md`) zakres obejmuje PIO, `pico_multicore`
-  i tryby oszczędzania energii — te funkcje NIE są wymagane w pierwszych
-  fazach i nie blokują wcześniejszych wydań.
+- The plugin MUST support the target triples: `thumbv6m-none-eabi` for
+  RP2040 and `thumbv8m.main-none-eabi` / `thumbv8m.main-none-eabihf` for
+  RP2350, configured through a custom Kotlin/Native target (per Principle I —
+  no KMP).
+- The public extension DSL MUST expose at least a board selection
+  (`board = "pico" | "pico_w" | "pico2" | "pico2_w"`) and a path to the
+  Pico SDK (`sdkPath`).
+- `_w` variants (Pico W, Pico 2 W) MUST automatically configure cinterop
+  for `pico_cyw43_arch` (CYW43/WiFi) — variants without `_w` MUST skip this
+  cinterop by default.
+- The plugin MUST provide Gradle tasks covering the full cycle: building the
+  binary, generating the UF2, flashing (via `picotool` or OpenOCD), and
+  debugging (GDB + OpenOCD) — task names and exact scope are set by the
+  phase plan per `ROADMAP.md`.
+- Eventually (Phase 4+ in `ROADMAP.md`) the scope covers PIO, `pico_multicore`,
+  and power-saving modes — these features are NOT required in the early
+  phases and do not block earlier releases.
 
-## Workflow deweloperski i bramki jakości
+## Development workflow and quality gates
 
-Narzędzie `ponytail` MUSI być używane zarówno do **implementacji**, jak i do
-egzekucji/weryfikacji poleceń. Oznacza to, że sam kod (nowe klasy, zadania
-Gradle, rozszerzenia DSL, cinterop wrappery) MUSI być pisany zgodnie z
-zasadami ponytail (YAGNI, reużycie istniejących mechanizmów przed napisaniem
-nowych, stdlib/API platformy przed zależnością, najkrótsza działająca
-implementacja) — nie tylko uruchamiane przez nie na etapie weryfikacji.
-Build, testy, lint i statyczna analiza MUSZĄ być egzekwowane i weryfikowane
-przez `ponytail`. Do tworzenia i zarządzania commitami (commit, branch, push)
-MUSI być używany agent `git-committer` — bezpośrednie wywołania `git
-commit`/`git push` przez innego wykonawcę są zabronione. Commit messages
-MUSZĄ być zgodne z Conventional Commits (`feat:`, `fix:`, `refactor:`,
-`test:`, `docs:`, `chore:` itd.). Przed każdym istotnym commitem MUSI zostać
-uruchomiona pełna weryfikacja (kompilacja, testy Kotest, ktlint, detekt)
-przez `ponytail`.
+The `ponytail` tool MUST be used both for **implementation** and for
+command execution/verification. This means the code itself (new classes,
+Gradle tasks, DSL extensions, cinterop wrappers) MUST be written following
+ponytail principles (YAGNI, reusing existing mechanisms before writing new
+ones, stdlib/platform API before a dependency, the shortest working
+implementation) — not merely run through it at the verification stage.
+Build, tests, lint, and static analysis MUST be enforced and verified by
+`ponytail`. Creating and managing commits (commit, branch, push) MUST be
+done via the `git-committer` agent — direct `git commit`/`git push` calls
+by any other executor are forbidden. Commit messages MUST follow
+Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`,
+`chore:`, etc.). Before every significant commit, full verification
+(compilation, Kotest tests, ktlint, detekt) MUST be run via `ponytail`.
 
 ## Governance
 
-Ta konstytucja nadrzędna jest wobec wszelkich innych praktyk, szablonów i
-dokumentacji w repozytorium — w razie konfliktu wygrywa konstytucja.
-Poprawki wymagają: (1) jawnego opisu zmiany i uzasadnienia, (2) aktualizacji
-numeru wersji zgodnie z semantycznym wersjonowaniem poniżej, (3) propagacji
-zmian do zależnych szablonów (`plan-template.md`, `spec-template.md`,
-`tasks-template.md`) jeśli zasady tego wymagają.
+This constitution takes precedence over any other practices, templates, and
+documentation in the repository — in case of conflict, the constitution
+wins. Amendments require: (1) an explicit description of the change and its
+rationale, (2) a version number update per the semantic versioning rules
+below, (3) propagation of changes to dependent templates
+(`plan-template.md`, `spec-template.md`, `tasks-template.md`) if the rules
+require it.
 
-Wersjonowanie konstytucji stosuje semver:
-- **MAJOR** — usunięcie lub redefinicja zasady w sposób niekompatybilny
-  wstecz (np. zmiana wymaganej wersji Kotlin/Gradle, dopuszczenie Javy).
-- **MINOR** — dodanie nowej zasady lub istotne rozszerzenie wytycznych.
-- **PATCH** — doprecyzowania, poprawki redakcyjne, zmiany niesemantyczne.
+Constitution versioning follows semver:
+- **MAJOR** — removal or backward-incompatible redefinition of a principle
+  (e.g. changing the required Kotlin/Gradle version, allowing Java).
+- **MINOR** — addition of a new principle or a substantial expansion of
+  guidelines.
+- **PATCH** — clarifications, editorial fixes, non-semantic changes.
 
-Każdy plan (`plan.md`) i przegląd kodu MUSI zawierać sekcję Constitution
-Check weryfikującą zgodność z zasadami I–V powyżej. Złamanie zasady bez
-udokumentowanego uzasadnienia w `Complexity Tracking` blokuje scalenie.
+Every plan (`plan.md`) and code review MUST include a Constitution Check
+section verifying compliance with principles I–V above. Violating a
+principle without a documented justification in `Complexity Tracking`
+blocks merging.
 
 **Version**: 1.2.3 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-03

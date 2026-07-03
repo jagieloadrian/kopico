@@ -1,13 +1,13 @@
-# Spike: custom Kotlin/Native target dla RP2040 (T009)
+# Spike: custom Kotlin/Native target for RP2040 (T009)
 
-**Data**: 2026-07-03
-**Kompilator**: Kotlin/Native 2.4.0 (linux-x86_64 prebuilt,
-`kotlin-native-prebuilt-linux-x86_64-2.4.0.tar.gz`, pobrany bezpośrednio z
-GitHub Releases JetBrains/kotlin — patrz `research.md` § 3, poprawka URL)
+**Date**: 2026-07-03
+**Compiler**: Kotlin/Native 2.4.0 (linux-x86_64 prebuilt,
+`kotlin-native-prebuilt-linux-x86_64-2.4.0.tar.gz`, downloaded directly from
+GitHub Releases JetBrains/kotlin — see `research.md` § 3, URL fix)
 
-## Kroki
+## Steps
 
-1. Sprawdzono listę wbudowanych targetów: `konanc -list-targets`
+1. Checked the list of built-in targets: `konanc -list-targets`
 
    ```
    linux_x64 (default)
@@ -20,18 +20,18 @@ GitHub Releases JetBrains/kotlin — patrz `research.md` § 3, poprawka URL)
    android_arm64
    ```
 
-   Brak jakiegokolwiek targetu bare-metal/freestanding — zgodne z ustaleniem
-   `research.md` § 1 (oficjalna lista wspieranych targetów).
+   No bare-metal/freestanding target whatsoever — consistent with the
+   `research.md` § 1 finding (official list of supported targets).
 
-2. Zbadano `konan/konan.properties` (796 linii) w dystrybucji. Plik
-   definiuje **konfigurację toolchaina** (ścieżki do gcc/clang, sysroot,
-   flagi linkera, cechy CPU) dla kluczy w formacie
-   `<własność>.<nazwa_targetu>`, np. `targetTriple.linux_arm32_hfp`,
-   `targetCpu.linux_arm32_hfp`. Nie ma tam żadnego mechanizmu deklarowania
-   *nowej* nazwy targetu — właściwości są tylko odczytywane dla nazw, które
-   kompilator już rozpoznaje.
+2. Examined `konan/konan.properties` (796 lines) in the distribution. The
+   file defines the **toolchain configuration** (paths to gcc/clang,
+   sysroot, linker flags, CPU features) for keys in the format
+   `<property>.<target_name>`, e.g. `targetTriple.linux_arm32_hfp`,
+   `targetCpu.linux_arm32_hfp`. There is no mechanism there for declaring a
+   *new* target name — the properties are only read for names the
+   compiler already recognizes.
 
-3. Próba kompilacji z nieistniejącym targetem:
+3. Attempt to compile with a nonexistent target:
 
    ```
    $ konanc -target thumbv6m-none-eabi hello.kt -o hello
@@ -39,40 +39,42 @@ GitHub Releases JetBrains/kotlin — patrz `research.md` § 3, poprawka URL)
        at org.jetbrains.kotlin.native.NativeFirstStageCompilationConfigKt.createFirstStageCompilationConfig(...)
    ```
 
-   To samo dla `-target armv6-m`. Błąd pochodzi z
-   `NativeFirstStageCompilationConfig.kt` — walidacja nazwy targetu
-   następuje względem zamkniętego enuma `KonanTarget` wkompilowanego w JAR
-   kompilatora, **przed** jakąkolwiek konsultacją `konan.properties`.
+   Same for `-target armv6-m`. The error comes from
+   `NativeFirstStageCompilationConfig.kt` — target name validation happens
+   against a closed `KonanTarget` enum compiled into the compiler JAR,
+   **before** any consultation of `konan.properties`.
 
-## Wniosek
+## Conclusion
 
-**Rozszerzenie `konan.properties` o custom target NIE DZIAŁA** ze stockowym
-kompilatorem Kotlin/Native 2.4.0 — to empirycznie obalona hipoteza z
-`research.md` § 1 (community spike bez potwierdzonego sukcesu — teraz mamy
-bezpośredni dowód dlaczego: to nie jest kwestia konfiguracji, tylko
-twardego ograniczenia w kodzie kompilatora).
+**Extending `konan.properties` with a custom target does NOT WORK** with
+the stock Kotlin/Native 2.4.0 compiler — this empirically refutes the
+`research.md` § 1 hypothesis (community spike without confirmed success —
+we now have direct evidence why: it's not a configuration issue, but a
+hard limitation in the compiler code).
 
-Jedyna droga do custom bare-metal targetu wymagałaby:
-- forka/patcha kompilatora Kotlin/Native (dodanie wpisu do `KonanTarget`,
-  rekompilacja `native/kotlin-native` z JetBrains/kotlin) — ogromny nakład,
-  poza zakresem "spike'u"; oraz
-- napisania/zaadaptowania runtime'u K/N (GC, alokator, model pamięci) pod
-  środowisko bez OS — obecny runtime zakłada `mmap`/wątki/hostowany libc.
+The only path to a custom bare-metal target would require:
+- forking/patching the Kotlin/Native compiler (adding an entry to
+  `KonanTarget`, recompiling `native/kotlin-native` from JetBrains/kotlin)
+  — an enormous effort, out of scope for a "spike"; and
+- writing/adapting the K/N runtime (GC, allocator, memory model) for an
+  OS-less environment — the current runtime assumes `mmap`/threads/a
+  hosted libc.
 
-**Werdykt bramki go/no-go (patrz `poc/RESULTS.md`): PORAŻKA w obecnym
-zakresie spike'u.** Wymaga eskalacji do użytkownika przed kontynuacją
-T010-T013 (zależnych od działającego custom targetu) i przed Fazą 4 (US2).
+**Go/no-go gate verdict (see `poc/RESULTS.md`): FAILURE within the current
+scope of the spike.** Requires escalation to the user before continuing
+with T010-T013 (which depend on a working custom target) and before
+Phase 4 (US2).
 
-## Runda 2 (2026-07-03): `-Xoverride-konan-properties` — alternatywa bez nowej nazwy targetu
+## Round 2 (2026-07-03): `-Xoverride-konan-properties` — an alternative without registering a new target name
 
-Sprawdzono, czy pośredni artefakt LLVM/C omija problem (nie — patrz
-`poc/RESULTS.md` opcja 2, `-produce bitcode` jawnie wyłączone w 2.4.0). Przy
-tej okazji odkryto flagę `-Xoverride-konan-properties=key=val;...`
-(`konanc -X`), pozwalającą nadpisać właściwości `konan.properties` z CLI
-dla **istniejącej, zaakceptowanej** nazwy targetu — bez potrzeby rejestracji
-nowej nazwy.
+Checked whether an intermediate LLVM/C artifact sidesteps the problem (it
+doesn't — see `poc/RESULTS.md` option 2, `-produce bitcode` is explicitly
+disabled in 2.4.0). While investigating this, discovered the flag
+`-Xoverride-konan-properties=key=val;...` (`konanc -X`), which allows
+overriding `konan.properties` properties from the CLI for an **existing,
+accepted** target name — without needing to register a new name.
 
-### Eksperyment: przejęcie `linux_arm32_hfp` pod Cortex-M0+
+### Experiment: hijacking `linux_arm32_hfp` for Cortex-M0+
 
 ```bash
 OVERRIDES="targetCpu.linux_arm32_hfp=cortex-m0plus;\
@@ -85,77 +87,83 @@ konanc -target linux_arm32_hfp \
   -produce static hello.kt -o hellostatic
 ```
 
-**Wynik**: sukces (z ostrzeżeniem o niezgodności triple między naszym
-kodem `thumbv6m-unknown-none-eabihf` a `runtime.bc`, który wciąż deklaruje
-`armv6kz-unknown-linux-gnueabihf` — LLVM i tak zlinkował moduły, bo
-`runtime.bc` to przenośny LLVM IR, nie gotowy kod maszynowy). Powstał
-`libhellostatic.a` zawierający **realny obiekt ELF32 `elf32-littlearm`,
-EABI** (nie glibc-owy ABI) — zweryfikowane przez
+**Result**: success (with a warning about a triple mismatch between our
+code's `thumbv6m-unknown-none-eabihf` and `runtime.bc`, which still
+declares `armv6kz-unknown-linux-gnueabihf` — LLVM linked the modules
+anyway, since `runtime.bc` is portable LLVM IR, not ready machine code).
+The resulting `libhellostatic.a` contains an **actual ELF32
+`elf32-littlearm` object, EABI** (not a glibc ABI) — verified via
 `arm-none-eabi-readelf -h`.
 
-Wcześniejsza próba z `-produce dynamic` dochodzi aż do etapu linkowania i
-dopiero tam pada (`ld.bfd: uses VFP register arguments... does not` —
-niezgodność hard/soft-float między naszym kodem a glibc-ową biblioteką
-współdzieloną dla tego targetu) — to potwierdza, że **codegen LLVM dla
-Cortex-M0+/Thumb-1 faktycznie działa**, problem jest wyłącznie w
-finalnym linkowaniu/runtime, nie w samym tłumaczeniu Kotlin → maszynowy
-kod ARM.
+An earlier attempt with `-produce dynamic` gets all the way to the
+linking stage and only fails there (`ld.bfd: uses VFP register
+arguments... does not` — a hard/soft-float mismatch between our code and
+the glibc shared library for this target) — this confirms that **LLVM
+codegen for Cortex-M0+/Thumb-1 actually works**; the problem is solely in
+the final linking/runtime, not in the Kotlin-to-ARM-machine-code
+translation itself.
 
-### Analiza wynikowego pliku obiektowego
+### Analysis of the resulting object file
 
-`arm-none-eabi-nm -u libhellostatic.a.o` → 134 niezdefiniowane symbole:
-35 `__aeabi_*` (libgcc, trywialne), 21 `pthread_*`, 44
-libstdc++/C++-exceptions/RTTI, 2 `mmap`/`munmap`. Runtime K/N (C++, GC
-wielowątkowy) wymaga prawdziwych wątków systemowych i mapowania pamięci
-wirtualnej — **RP2040 nie ma MMU**, więc `mmap` w sensie POSIX jest
-fizycznie niewykonalny na tym chipie, nie tylko brakujący.
+`arm-none-eabi-nm -u libhellostatic.a.o` → 134 undefined symbols:
+35 `__aeabi_*` (libgcc, trivial), 21 `pthread_*`, 44
+libstdc++/C++-exceptions/RTTI, 2 `mmap`/`munmap`. The K/N runtime (C++,
+multithreaded GC) requires real OS threads and virtual memory mapping —
+**RP2040 has no MMU**, so POSIX `mmap` is physically infeasible on this
+chip, not merely missing.
 
-### Zrewidowany wniosek
+### Revised conclusion
 
-Teza "trzeba forkować kompilator" była za kategoryczna —
-`-Xoverride-konan-properties` daje działający codegen bez forka. Prawdziwa
-bariera przesuwa się z "kompilator nie umie" na "**runtime K/N wymaga
-portu** na środowisko bez wątków OS i bez MMU" — mniejszy, ale wciąż
-wielotygodniowy projekt. Pełna analiza opcji: `poc/RESULTS.md`.
+The thesis "the compiler must be forked" was too categorical —
+`-Xoverride-konan-properties` gives working codegen without a fork. The
+real barrier shifts from "the compiler can't do it" to "**the K/N runtime
+needs a port**" to an environment without OS threads and without an MMU —
+smaller, but still a multi-week project. Full analysis of options:
+`poc/RESULTS.md`.
 
-## Runda 3 (2026-07-03): pełny pipeline Kotlin → UF2 — DZIAŁA
+## Round 3 (2026-07-03): full Kotlin → UF2 pipeline — WORKS
 
-Kontynuacja rundy 2 doprowadziła do kompletnego, działającego builda.
-Napotkane i rozwiązane problemy, w kolejności:
+Continuing round 2 led to a complete, working build. Problems encountered
+and resolved, in order:
 
 1. **`ld.bfd`: "Unknown destination type (ARM/Thumb)" / R_ARM_JUMP24**.
-   Pliki runtime `konan/targets/linux_arm32_hfp/native/*.bc` mają
-   wkompilowane per-funkcyjne atrybuty LLVM `"target-cpu"="arm1176jzf-s"`,
-   `"target-features"="...,-thumb-mode,..."`, które **wygrywają z triple** i
-   generują kod ARM-mode — nielegalny na Armv6-M (Thumb-only). Fix:
-   jednorazowy patch wszystkich `.bc` (backup w `native.bak`):
+   The runtime files `konan/targets/linux_arm32_hfp/native/*.bc` have
+   per-function LLVM attributes compiled in, `"target-cpu"="arm1176jzf-s"`,
+   `"target-features"="...,-thumb-mode,..."`, which **override the
+   triple** and generate ARM-mode code — illegal on Armv6-M (Thumb-only).
+   Fix: a one-time patch of all `.bc` files (backup in `native.bak`):
    ```bash
    clang -target thumbv6m-unknown-none-eabi -x ir f.bc -S -emit-llvm -o - \
      | sed -e 's/"target-cpu"="arm1176jzf-s"/"target-cpu"="cortex-m0plus"/g' \
            -e 's/"target-features"="[^"]*"/"target-features"="+strict-align,+thumb-mode,+soft-float,-neon,..."/g' \
      | clang -target thumbv6m-unknown-none-eabi -x ir - -c -emit-llvm -o f.bc
    ```
-   Uwaga: `clang -x ir` bez `-target` nadpisuje triple hostem (x86_64) —
-   trzeba podać jawnie. Te same override'y muszą iść do `cinterop`
-   (bridge w klib też niesie atrybuty ARM).
-2. **`ld.bfd` nadal nie trawi relokacji Thumb z obiektów LLVM** → link przez
-   `ld.lld` z dystrybucji LLVM K/N (`-fuse-ld=lld -B<dir>`); 3-liniowy
-   wrapper filtruje flagę `--no-warn-rwx-segments` (bfd-only).
-3. **PIC → `.got` w RAM bez LMA** (picotool: "memory contents for
-   uninitialized memory"). Fix: `staticLibraryRelocationMode.linux_arm32_hfp=static`
-   w override'ach + kopia `memmap_default.ld` z `*(.got*)` w sekcji FLASH
-   (wpisy GOT rozwiązane statycznie = read-only).
-4. **`__aeabi_read_tp`** (local-exec TLS po przejściu na static) — naked-asm
-   stub zwracający statyczny blok (specjalne ABI: wolno ruszyć tylko r0).
-5. **`std::condition_variable`** — libstdc++ w arm-none-eabi jest
-   single-thread i nie ma tych symboli; no-op stuby pod zmanglowanymi
-   nazwami (poprawne identyfikatory C).
-6. **`stdout`/`stderr`** — w newlib to makra, nie symbole; osobny TU
-   definiuje globale i konstruktor podstawia realne strumienie newlib.
+   Note: `clang -x ir` without `-target` overrides the triple with the
+   host's (x86_64) — it must be given explicitly. The same overrides must
+   also be passed to `cinterop` (the bridge in the klib also carries ARM
+   attributes).
+2. **`ld.bfd` still can't digest Thumb relocations from LLVM objects** →
+   link via `ld.lld` from the LLVM K/N distribution (`-fuse-ld=lld
+   -B<dir>`); a 3-line wrapper filters out the `--no-warn-rwx-segments`
+   flag (bfd-only).
+3. **PIC → `.got` in RAM without an LMA** (picotool: "memory contents for
+   uninitialized memory"). Fix:
+   `staticLibraryRelocationMode.linux_arm32_hfp=static` in the overrides
+   + a copy of `memmap_default.ld` with `*(.got*)` in the FLASH section
+   (GOT entries resolved statically = read-only).
+4. **`__aeabi_read_tp`** (local-exec TLS after switching to static) — a
+   naked-asm stub returning a static block (special ABI: only r0 may be
+   touched).
+5. **`std::condition_variable`** — libstdc++ on arm-none-eabi is
+   single-threaded and lacks these symbols; no-op stubs under the mangled
+   names (valid C identifiers).
+6. **`stdout`/`stderr`** — in newlib these are macros, not symbols; a
+   separate TU defines globals and a constructor substitutes the real
+   newlib streams.
 
-**Wynik**: `kblink.elf` (340 funkcji Kotlin, entry point Thumb 0x100001e9,
-`kfun:#main` zdisasemblowany jako czysty Thumb-1) → `kblink.uf2` (544 KB,
-`picotool info` czyta poprawnie, family rp2040, binarka
-0x10000000-0x100426d0). Kompletny przepis reprodukcji: `poc/blink/`
+**Result**: `kblink.elf` (340 Kotlin functions, Thumb entry point
+0x100001e9, `kfun:#main` disassembles as pure Thumb-1) → `kblink.uf2`
+(544 KB, `picotool info` reads it correctly, family rp2040, binary
+0x10000000-0x100426d0). Complete reproduction recipe: `poc/blink/`
 (CMakeLists.txt, wrapper.c, kopico_shim.c, kopico_stdio_globals.c,
 memmap_kopico.ld, lld-wrap/).

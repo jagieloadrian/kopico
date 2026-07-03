@@ -1,36 +1,37 @@
 # examples/blink
 
-Minimalny projekt mrugający wbudowaną diodą LED, budowany pluginem
-`com.anjo.kopico`.
+A minimal project blinking the onboard LED, built with the
+`com.anjo.kopico` plugin.
 
-## Użycie
+## Usage
 
-1. Opublikuj plugin lokalnie (z katalogu głównego repo):
+1. Publish the plugin locally (from the repo root directory):
 
    ```bash
    ./gradlew publishToMavenLocal
    ```
 
-2. Ustaw `board` w `build.gradle.kts` **zgodnie z posiadaną płytką** — to
-   istotne, bo na wariantach `_w` (Pico W / Pico 2 W) dioda nie wisi na
-   GPIO25, tylko na chipie WiFi CYW43. Build dla złej płytki będzie machał
-   niepodłączonym pinem i dioda nie mrugnie (lekcja z PoC, `poc/RESULTS.md`):
+2. Set `board` in `build.gradle.kts` **to match the board you have** — this
+   matters, because on `_w` variants (Pico W / Pico 2 W) the LED does not
+   hang off GPIO25, but off the CYW43 WiFi chip. Building for the wrong
+   board will toggle an unconnected pin and the LED won't blink (a lesson
+   from the PoC, `poc/RESULTS.md`):
 
-   | Płytka | `board` |
+   | Board | `board` |
    |---|---|
    | Raspberry Pi Pico | `pico` |
    | Raspberry Pi Pico W | `pico_w` |
    | Raspberry Pi Pico 2 | `pico2` |
    | Raspberry Pi Pico 2 W | `pico2_w` |
 
-   Kod w `Main.kt` jest wspólny dla wszystkich wariantów —
-   `kopico_default_led_pin()` sam kieruje operacje LED na GPIO albo CYW43.
+   The code in `Main.kt` is shared across all variants —
+   `kopico_default_led_pin()` itself routes LED operations to GPIO or CYW43.
 
-3. Zbuduj (pierwsze uruchomienie pobiera toolchain — wymaga sieci):
+3. Build (the first run downloads the toolchain — requires network):
 
    ```bash
    ../../gradlew -p . build
    ```
 
-4. Wgraj `build/kopico/blink.uf2` na płytkę w trybie BOOTSEL (przytrzymaj
-   przycisk BOOTSEL przy podłączaniu USB, skopiuj plik na dysk `RPI-RP2`).
+4. Flash `build/kopico/blink.uf2` onto the board in BOOTSEL mode (hold the
+   BOOTSEL button while connecting USB, copy the file to the `RPI-RP2` drive).

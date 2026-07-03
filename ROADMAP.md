@@ -1,157 +1,157 @@
 # Kopico Roadmap
 
-Plan implementacji Gradle Pluginu `com.anjo.kopico` dla Kotlin/Native na
+Implementation plan for the Gradle plugin `com.anjo.kopico` for Kotlin/Native on
 Raspberry Pi Pico / Pico 2 (RP2040 / RP2350).
 
-> **✅ STATUS: Faza 0 (PoC) ZAKOŃCZONA — potwierdzone na fizycznym sprzęcie
-> (2026-07-03).** Blink napisany w Kotlinie działa na fizycznym Raspberry
-> Pi Pico W (5 błysków diagnostycznych + mruganie 250ms z pętli Kotlin).
-> Technika: retargeting `linux_arm32_hfp` przez
+> **STATUS: Phase 0 (PoC) COMPLETE — confirmed on physical hardware
+> (2026-07-03).** Blink written in Kotlin runs on a physical Raspberry
+> Pi Pico W (5 diagnostic flashes + 250ms blinking from a Kotlin loop).
+> Technique: retargeting `linux_arm32_hfp` via
 > `-Xoverride-konan-properties` (cortex-m0plus/thumbv6m, static reloc) +
-> jednorazowy patch atrybutów w runtime `.bc` + ~150 linii stubów C
-> (pthread/mmap/TLS) + link przez `ld.lld` + `.got` we FLASH. Lekcja
-> sprzętowa: na wariantach `_w` dioda wisi na CYW43, nie na GPIO25 — build
-> musi być per-płytka. Pełny przepis: `poc/konan-target-spike.md`;
-> werdykt i ograniczenia (gc=noop, deprecated target): `poc/RESULTS.md`.
-> **Faza 1 (minimalny plugin) odblokowana.**
+> a one-time attribute patch in the runtime `.bc` + ~150 lines of C stubs
+> (pthread/mmap/TLS) + linking via `ld.lld` + `.got` in FLASH. Hardware
+> lesson: on `_w` variants the LED hangs off CYW43, not GPIO25 — the build
+> must be per-board. Full recipe: `poc/konan-target-spike.md`;
+> verdict and limitations (gc=noop, deprecated target): `poc/RESULTS.md`.
+> **Phase 1 (minimal plugin) unblocked.**
 
-> **Uwaga architektoniczna**: zgodnie z Zasadą I konstytucji projektu
-> (`.specify/memory/constitution.md`), plugin działa w trybie **czystego
-> Kotlin/Native** (custom native target), **nie** Kotlin Multiplatform.
-> Wszystkie poniższe fazy zakładają konfigurację przez dedykowany, custom
-> target Kotlin/Native (odpowiednik `KotlinNativeTarget` skonfigurowanego
-> ręcznie/przez plugin, bez bloku `kotlin("multiplatform")`), a nie standardowy
-> mechanizm KMP presetów.
+> **Architectural note**: per Principle I of the project constitution
+> (`.specify/memory/constitution.md`), the plugin operates in pure
+> **Kotlin/Native** mode (custom native target), **not** Kotlin Multiplatform.
+> All phases below assume configuration through a dedicated, custom
+> Kotlin/Native target (the equivalent of a `KotlinNativeTarget` configured
+> manually/by the plugin, without a `kotlin("multiplatform")` block), not the
+> standard KMP preset mechanism.
 
-## Zakres
+## Scope
 
-Plugin ma umożliwić wygodne pisanie kodu w Kotlin/Native (z użyciem Pico SDK) dla:
+The plugin is meant to make it convenient to write code in Kotlin/Native (using the Pico SDK) for:
 
 - **RP2040**: Pico + Pico W
 - **RP2350**: Pico 2 + Pico 2 W
 
-Integruje się z toolchainem Pico SDK (CMake + `arm-none-eabi-gcc`/clang +
+It integrates with the Pico SDK toolchain (CMake + `arm-none-eabi-gcc`/clang +
 OpenOCD / picotool).
 
-### Cele pluginu
+### Plugin goals
 
-- Ułatwienie deklaracji targetów `pico`, `picoW`, `pico2`, `pico2W`.
-- Automatyczna konfiguracja cinterop z Pico SDK.
-- Wsparcie dla bootloadera (UF2), flashowania, debugowania.
-- Wsparcie dla wersji z WiFi (CYW43).
-- Łatwe budowanie i deploy (Makefile-like experience w Gradle).
-- Kompatybilność z istniejącymi projektami Pico SDK (C/C++ interop).
+- Make it easy to declare the `pico`, `picoW`, `pico2`, `pico2W` targets.
+- Automatic cinterop configuration with the Pico SDK.
+- Support for the bootloader (UF2), flashing, debugging.
+- Support for WiFi (CYW43) variants.
+- Easy building and deployment (a Makefile-like experience in Gradle).
+- Compatibility with existing Pico SDK projects (C/C++ interop).
 
-## Faza 0: Research & PoC (1-2 tygodnie)
+## Phase 0: Research & PoC (1-2 weeks)
 
-**Analiza istniejących rozwiązań**
-- Sprawdź ticket JetBrains: KT-44498 – dodanie RP2040 jako targetu.
-- Przeanalizuj jak działają custom targety w Kotlin/Native (bez KMP presetów).
-- Zbadaj istniejące cinterop z Pico SDK (header-only podejście jest możliwe).
+**Analysis of existing solutions**
+- Check the JetBrains ticket: KT-44498 – adding RP2040 as a target.
+- Analyze how custom targets work in Kotlin/Native (without KMP presets).
+- Investigate existing cinterop with the Pico SDK (a header-only approach is possible).
 
-**Techniczne PoC**
-- Stwórz ręczny projekt Kotlin/Native z custom target skonfigurowanym pod
-  triple ARM Pico (bez `kotlin("multiplatform")`).
-- Skonfiguruj cinterop dla `pico-sdk` (headers z `pico-sdk/src/rp2_common`).
-- Skompiluj prosty blink w Kotlinie (używając `gpio_put` itp.).
-- Wygeneruj UF2 i sprawdź na hardware.
+**Technical PoC**
+- Create a manual Kotlin/Native project with a custom target configured for
+  the ARM Pico triple (without `kotlin("multiplatform")`).
+- Configure cinterop for `pico-sdk` (headers from `pico-sdk/src/rp2_common`).
+- Compile a simple blink in Kotlin (using `gpio_put` etc.).
+- Generate a UF2 and verify on hardware.
 
-**Narzędzia**
-- Zainstaluj Pico SDK + `arm-none-eabi-gcc`.
-- Zdefiniuj triple: `thumbv6m-none-eabi` (RP2040) i
+**Tools**
+- Install the Pico SDK + `arm-none-eabi-gcc`.
+- Define the triples: `thumbv6m-none-eabi` (RP2040) and
   `thumbv8m.main-none-eabi` / `thumbv8m.main-none-eabihf` (RP2350).
 
-**Deliverable**: Repozytorium z działającym PoC + dokumentacja "jak to działa manualnie".
+**Deliverable**: A repository with a working PoC + documentation on "how it works manually".
 
-## Faza 1: Podstawowy Gradle Plugin (2-3 tygodnie)
+## Phase 1: Basic Gradle Plugin (2-3 weeks)
 
-**Cel**: Minimalny działający plugin.
+**Goal**: A minimal working plugin.
 
-**Zadania**:
-- Utwórz plugin Gradle `com.anjo.kopico` używając `java-gradle-plugin` +
+**Tasks**:
+- Create the Gradle plugin `com.anjo.kopico` using `java-gradle-plugin` +
   Kotlin DSL.
-- Dodaj extension:
+- Add an extension:
   ```kotlin
   pico {
       sdkPath = "/path/to/pico-sdk"
       board = "pico" // "pico_w" / "pico2" / "pico2_w"
-      // inne opcje: frequency, debug, etc.
+      // other options: frequency, debug, etc.
   }
   ```
-- Zarejestruj custom native target odpowiedni dla wybranej płytki (bez
-  bloku KMP `kotlin { }` z presetami — target konfigurowany bezpośrednio
-  przez plugin pod właściwy triple).
-- Wsparcie dla wariantów W (dodatkowe cinteropy dla CYW43).
-- Automatyczna konfiguracja cinterops dla kluczowych bibliotek Pico SDK
-  (`pico_stdlib`, `hardware_gpio`, `hardware_pwm` itd.).
+- Register the custom native target appropriate for the chosen board (without
+  the KMP `kotlin { }` block with presets — the target is configured directly
+  by the plugin for the correct triple).
+- Support for W variants (additional cinterops for CYW43).
+- Automatic cinterop configuration for the key Pico SDK libraries
+  (`pico_stdlib`, `hardware_gpio`, `hardware_pwm`, etc.).
 
-**Deliverable**: Plugin publikowalny (Maven Local / GitHub Packages) +
-przykładowy projekt blink.
+**Deliverable**: A publishable plugin (Maven Local / GitHub Packages) +
+a sample blink project.
 
-## Faza 2: Integracja z Pico SDK i Build System (3-4 tygodnie)
+## Phase 2: Pico SDK and Build System Integration (3-4 weeks)
 
-**Zaawansowane cinterop**
-- Automatyczne generowanie plików `.def` dla całego SDK lub wybranych modułów.
-- Wsparcie dla `pico-sdk` jako submodułu lub external project.
-- Obsługa integracji z CMake (wywołanie CMake z Gradle via `exec` lub
-  dedykowany task).
+**Advanced cinterop**
+- Automatic generation of `.def` files for the whole SDK or selected modules.
+- Support for `pico-sdk` as a submodule or an external project.
+- CMake integration handling (invoking CMake from Gradle via `exec` or a
+  dedicated task).
 
 **Binaries & Linking**
-- Konfiguracja linker scriptów (`memmap_default.ld` itp.).
-- Generowanie UF2 (`elf2uf2` lub port na JVM/Kotlin).
-- Wsparcie dla odpowiedników `pico_add_library` / `pico_enable_stdio_usb` itp.
+- Configuration of linker scripts (`memmap_default.ld`, etc.).
+- UF2 generation (`elf2uf2` or a JVM/Kotlin port).
+- Support for equivalents of `pico_add_library` / `pico_enable_stdio_usb`, etc.
 
-**Wersje W**
-- Dedykowane targety `picoW` / `pico2W`.
-- Automatyczne dodanie `pico_cyw43_arch` i lwIP.
+**W versions**
+- Dedicated `picoW` / `pico2W` targets.
+- Automatic addition of `pico_cyw43_arch` and lwIP.
 
-**Deliverable**: Przykłady GPIO, UART, ADC, PWM, WiFi (na W).
+**Deliverable**: GPIO, UART, ADC, PWM, WiFi (on W) examples.
 
-## Faza 3: Developer Experience & Tooling (2-3 tygodnie)
+## Phase 3: Developer Experience & Tooling (2-3 weeks)
 
-**Taski Gradle**:
+**Gradle tasks**:
 - `buildPico` / `buildUf2`
-- `flash` (przez `picotool` lub OpenOCD)
+- `flash` (via `picotool` or OpenOCD)
 - `debug` (GDB + OpenOCD)
 - `monitor` (minicom / picotool)
 
-**Konwencje i templates**:
-- Convention plugins (np. `pico.kotlin`).
-- Gotowe szablony projektów (`gradle init`).
+**Conventions and templates**:
+- Convention plugins (e.g. `pico.kotlin`).
+- Ready-made project templates (`gradle init`).
 
-**Testowanie**:
-- Testy jednostkowe na hoście (Kotest, zgodnie z Zasadą III) + integration na
-  hardware (jeśli możliwe).
-- Mocki dla hardware (opcjonalnie).
+**Testing**:
+- Unit tests on the host (Kotest, per Principle III) + integration on
+  hardware (if possible).
+- Hardware mocks (optional).
 
-**Dokumentacja**:
-- README z przykładami.
-- Przewodnik "Migracja z C SDK do Kotlin".
+**Documentation**:
+- README with examples.
+- "Migrating from C SDK to Kotlin" guide.
 
-**Deliverable**: Pełny przykład aplikacji (np. USB CDC + LED + WiFi na Pico W).
+**Deliverable**: A complete example application (e.g. USB CDC + LED + WiFi on Pico W).
 
-## Faza 4: Zaawansowane funkcje & Optymalizacje (2-4 tygodnie)
+## Phase 4: Advanced Features & Optimizations (2-4 weeks)
 
-- Wsparcie dla RP2350 (ARM; rdzeń RISC-V poza pierwszym zakresem — start od ARM).
-- Bootloader 2nd stage.
+- Support for RP2350 (ARM; the RISC-V core is out of the initial scope — starting with ARM).
+- 2nd stage bootloader.
 - PIO (Programmable I/O) – bindings.
 - Multicore (`pico_multicore`).
 - Power management, sleep modes.
-- Integracja z `tinyusb`, `lwip`, `freertos` (opcjonalnie).
-- Optymalizacje rozmiaru binarek (`-Os`, stripping).
-- Publikacja pluginu na Gradle Plugin Portal.
+- Integration with `tinyusb`, `lwip`, `freertos` (optional).
+- Binary size optimizations (`-Os`, stripping).
+- Plugin publication to the Gradle Plugin Portal.
 
-## Faza 5: Testowanie, Dokumentacja, Release
+## Phase 5: Testing, Documentation, Release
 
-- Testy na rzeczywistym hardware (wszystkie 4 warianty: Pico, Pico W, Pico 2, Pico 2 W).
-- Przykłady community (Blink, Hello World, Sensor, WiFi server).
-- CI/CD (GitHub Actions – budowanie na Linux).
-- Licencja (Apache 2.0 / MIT).
-- Publikacja + ogłoszenie (Reddit, Raspberry Pi forums, Kotlin Slack).
+- Testing on real hardware (all 4 variants: Pico, Pico W, Pico 2, Pico 2 W).
+- Community examples (Blink, Hello World, Sensor, WiFi server).
+- CI/CD (GitHub Actions – building on Linux).
+- License (Apache 2.0 / MIT).
+- Publication + announcement (Reddit, Raspberry Pi forums, Kotlin Slack).
 
-## Ryzyka / Wyzwania
+## Risks / Challenges
 
-- Brak oficjalnego wsparcia targetu w Kotlin/Native → custom target może być niestabilny.
-- Zmiany w Pico SDK (szczególnie RP2350).
-- Rozmiar i performance (Kotlin/Native ma overhead względem czystego C).
-- Debugowanie na bare-metal.
+- No official target support in Kotlin/Native → the custom target may be unstable.
+- Changes in the Pico SDK (especially RP2350).
+- Size and performance (Kotlin/Native has overhead relative to plain C).
+- Debugging on bare metal.

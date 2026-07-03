@@ -1,11 +1,11 @@
 # PoC Setup Log (T007-T008)
 
-Wykonane 2026-07-03, Linux x86_64.
+Performed 2026-07-03, Linux x86_64.
 
-## Toolchain ARM (T007)
+## ARM Toolchain (T007)
 
-Źródło: xPack ARM Embedded GCC (`research.md` § 5), najnowszy release
-zweryfikowany przez GitHub API: `v15.2.1-1.1`.
+Source: xPack ARM Embedded GCC (`research.md` § 5), latest release
+verified via the GitHub API: `v15.2.1-1.1`.
 
 ```bash
 curl -L -o gcc.tar.gz \
@@ -13,7 +13,7 @@ curl -L -o gcc.tar.gz \
 tar xzf gcc.tar.gz
 ```
 
-Zweryfikowano: `poc/toolchain/xpack-arm-none-eabi-gcc-15.2.1-1.1/bin/arm-none-eabi-gcc --version`
+Verified: `poc/toolchain/xpack-arm-none-eabi-gcc-15.2.1-1.1/bin/arm-none-eabi-gcc --version`
 → `arm-none-eabi-gcc (xPack GNU Arm Embedded GCC x86_64) 15.2.1 20251203`.
 
 ## Pico SDK (T007)
@@ -23,14 +23,15 @@ git clone --branch 2.2.0 --depth 1 --recurse-submodules --shallow-submodules \
   https://github.com/raspberrypi/pico-sdk.git pico-sdk
 ```
 
-Submoduły sklonowane poprawnie (`btstack`, `cyw43-driver`, `lwip`,
-`mbedtls` + zagnieżdżony `mbedtls-framework`, `tinyusb`). Wersja
-potwierdzona w `pico_sdk_version.cmake`: `2.2.0`.
+Submodules cloned correctly (`btstack`, `cyw43-driver`, `lwip`,
+`mbedtls` + nested `mbedtls-framework`, `tinyusb`). Version confirmed
+in `pico_sdk_version.cmake`: `2.2.0`.
 
-## Kompilator Kotlin/Native 2.4.0 (T008)
+## Kotlin/Native 2.4.0 compiler (T008)
 
-**Rozbieżność z `research.md`**: URL `download.jetbrains.com/kotlin/native/builds/releases/...`
-zwraca `404`. Rzeczywiste źródło to GitHub Releases:
+**Discrepancy with `research.md`**: the URL
+`download.jetbrains.com/kotlin/native/builds/releases/...` returns
+`404`. The actual source is GitHub Releases:
 
 ```bash
 curl -L -o kn.tar.gz \
@@ -38,11 +39,11 @@ curl -L -o kn.tar.gz \
 tar xzf kn.tar.gz
 ```
 
-Zweryfikowano: `bin/konanc -version` → `Kotlin/Native: 2.4.0`. `research.md`
-zaktualizowany o poprawny URL.
+Verified: `bin/konanc -version` → `Kotlin/Native: 2.4.0`. `research.md`
+updated with the correct URL.
 
-## Dalsze kroki
+## Next steps
 
-Patrz `poc/konan-target-spike.md` (T009) — próba custom targetu
-**nie powiodła się** empirycznie, co blokuje T010-T013 w obecnym kształcie.
-Patrz `poc/RESULTS.md` dla werdyktu bramki go/no-go.
+See `poc/konan-target-spike.md` (T009) — the custom target attempt
+**failed** empirically, which blocks T010-T013 in their current form.
+See `poc/RESULTS.md` for the go/no-go gate verdict.

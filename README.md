@@ -1,12 +1,12 @@
 # kopico
 
-Plugin Gradle `com.anjo.kopico` — kompilacja Kotlin/Native na Raspberry Pi
-Pico (RP2040/RP2350), od kodu Kotlin do gotowego pliku UF2, bez ręcznej
-konfiguracji toolchaina.
+Gradle plugin `com.anjo.kopico` — Kotlin/Native compilation for Raspberry Pi
+Pico (RP2040/RP2350), from Kotlin code to a ready UF2 file, without manual
+toolchain configuration.
 
-Wykonalność potwierdzona na fizycznym sprzęcie (Pico W, `poc/RESULTS.md`).
+Feasibility confirmed on physical hardware (Pico W, `poc/RESULTS.md`).
 
-## Użycie
+## Usage
 
 ```kotlin
 plugins {
@@ -14,87 +14,91 @@ plugins {
 }
 
 pico {
-    board = "pico"          // wymagane: "pico" | "pico_w" | "pico2" | "pico2_w"
-    // sdkPath = file("...") // opcjonalne — brak = automatyczne pobranie Pico SDK
+    board = "pico"          // required: "pico" | "pico_w" | "pico2" | "pico2_w"
+    // sdkPath = file("...") // optional — if omitted, the Pico SDK is downloaded automatically
 }
 ```
 
 ```bash
 ./gradlew build
-# wynik: build/kopico/<nazwa-projektu>.uf2
+# output: build/kopico/<project-name>.uf2
 ```
 
-Kod aplikacji trafia do `src/nativeMain/kotlin/`. API GPIO/LED jest dostępne
-przez pakiet `pico` (cinterop z wrapperem `kopico.h`) — patrz
-`examples/blink/`. Pełny kontrakt DSL: `specs/001-poc-minimal-plugin/contracts/extension-dsl.md`,
-scenariusze walidacji: `specs/001-poc-minimal-plugin/quickstart.md`.
+Application code goes into `src/nativeMain/kotlin/`. The GPIO/LED API is
+available via the `pico` package (cinterop with the `kopico.h` wrapper) — see
+`examples/blink/`. Full DSL contract: `specs/001-poc-minimal-plugin/contracts/extension-dsl.md`,
+validation scenarios: `specs/001-poc-minimal-plugin/quickstart.md`.
 
 ### Auto-provisioning (FR-013)
 
-Przy pierwszym buildzie (wymagana sieć) plugin pobiera i cache'uje w
-`<gradleUserHome>/caches/kopico/<narzędzie>/<wersja>/`:
+On the first build (network required) the plugin downloads and caches, in
+`<gradleUserHome>/caches/kopico/<tool>/<version>/`:
 
-| Narzędzie | Wersja | Źródło |
+| Tool | Version | Source |
 |---|---|---|
 | Pico SDK | 2.2.0 | shallow git clone `raspberrypi/pico-sdk` |
-| ARM GCC | 15.2.1-1.1 | xPack `arm-none-eabi-gcc-xpack` (z weryfikacją SHA-256) |
-| Kotlin/Native | 2.4.0 | GitHub Releases `JetBrains/kotlin` (z weryfikacją SHA-256) |
+| ARM GCC | 15.2.1-1.1 | xPack `arm-none-eabi-gcc-xpack` (with SHA-256 verification) |
+| Kotlin/Native | 2.4.0 | GitHub Releases `JetBrains/kotlin` (with SHA-256 verification) |
 | picotool | 2.2.0-a4 | `raspberrypi/pico-sdk-tools` |
-| OpenOCD | 0.12.0+dev | `raspberrypi/pico-sdk-tools` (na potrzeby przyszłych zadań flash/debug) |
+| OpenOCD | 0.12.0+dev | `raspberrypi/pico-sdk-tools` (for future flash/debug tasks) |
 
-Narzędzia obecne w `PATH` (`arm-none-eabi-gcc`, `picotool`) mają
-pierwszeństwo przed pobieraniem (FR-012). Jawnie ustawiony `sdkPath` jest
-walidowany (wymagane `>= 2.2.0`, FR-011) i nigdy nie jest nadpisywany.
-Kolejne buildy działają offline (FR-014).
+Tools already present on `PATH` (`arm-none-eabi-gcc`, `picotool`) take
+precedence over downloading (FR-012). An explicitly set `sdkPath` is
+validated (requires `>= 2.2.0`, FR-011) and is never overwritten.
+Subsequent builds work offline (FR-014).
 
-## Jak to działa pod maską
+## How it works under the hood
 
-Kotlin/Native nie wspiera oficjalnie bare-metal ARM Cortex-M. Plugin
-automatyzuje przepis wypracowany i zweryfikowany sprzętowo w PoC
+Kotlin/Native does not officially support bare-metal ARM Cortex-M. The plugin
+automates the recipe worked out and hardware-verified in the PoC
 (`poc/konan-target-spike.md`, `poc/SETUP.md`):
 
-1. **Retargeting zamiast forka kompilatora.** Rejestracja nowego targetu w
-   `konan.properties` nie działa (nazwa targetu jest walidowana względem
-   zamkniętego enuma w kompilatorze). Zamiast tego plugin przejmuje
-   istniejący target `linux_arm32_hfp` i nadpisuje jego codegen flagą
-   `-Xoverride-konan-properties`: `targetCpu=cortex-m0plus`,
-   `targetTriple=thumbv6m-none-eabi`, soft-float, Thumb-only, relokacje
-   statyczne (`KonanRetargeting.kt`).
+1. **Retargeting instead of forking the compiler.** Registering a new target
+   in `konan.properties` doesn't work (the target name is validated against a
+   closed enum in the compiler). Instead, the plugin hijacks the existing
+   `linux_arm32_hfp` target and overrides its codegen with the
+   `-Xoverride-konan-properties` flag: `targetCpu=cortex-m0plus`,
+   `targetTriple=thumbv6m-none-eabi`, soft-float, Thumb-only, static
+   relocations (`KonanRetargeting.kt`).
 
-2. **Patch atrybutów `.bc` runtime'u.** Pliki `konan/targets/linux_arm32_hfp/native/*.bc`
-   mają wkompilowane per-funkcyjne atrybuty LLVM (`target-cpu=arm1176jzf-s`,
-   `-thumb-mode`), które wygrywają z triple i generują kod ARM-mode —
-   nielegalny na Armv6-M. `KotlinNativeProvisioner` wykonuje jednorazowy
-   patch (`clang -x ir → sed → clang -c -emit-llvm`, backup w `native.bak`,
-   marker chroni przed powtórką).
+2. **Patching runtime `.bc` attributes.** The files
+   `konan/targets/linux_arm32_hfp/native/*.bc` have per-function LLVM
+   attributes baked in (`target-cpu=arm1176jzf-s`, `-thumb-mode`), which
+   override the triple and generate ARM-mode code — illegal on Armv6-M.
+   `KotlinNativeProvisioner` performs a one-time patch
+   (`clang -x ir → sed → clang -c -emit-llvm`, with a backup in `native.bak`,
+   guarded by a marker against re-running).
 
-3. **Pipeline zadań** (`kopicoCinterop → kopicoCompileNative → kopicoLink →
-   kopicoUf2`, podpięty pod `assemble`/`build`):
-   - `cinterop` buduje klib z wrappera `kopico.h` (te same override'y co
-     konanc — bridge w klibie też niesie atrybuty ARM);
-   - `konanc -produce static` z `-Xbinary=gc=noop -Xbinary=gcSchedulerType=manual
-     -Xallocator=std` (RP2040 nie ma OS/MMU — bez wątków GC) daje `libkotlinapp.a`;
-   - link finalnego ELF robi CMake z Pico SDK (boot2, crt0, clocks) — plugin
-     wstrzykuje własne zasoby: `wrapper.c` (most GPIO/CYW43 + wywołanie
-     `main` z Kotlina), `kopico_shim.c` (stuby pthread/mmap/TLS —
-     środowisko jednowątkowe bez MMU), `kopico_stdio_globals.c`
-     (stdout/stderr jako symbole dla newlib) i `memmap_kopico.ld` (`.got`
-     we FLASH); linkowanie przez `ld.lld` z zależności K/N, bo `ld.bfd` nie
-     trawi relokacji Thumb z obiektów LLVM;
-   - `picotool uf2 convert` zamienia ELF na UF2.
+3. **Task pipeline** (`kopicoCinterop → kopicoCompileNative → kopicoLink →
+   kopicoUf2`, wired into `assemble`/`build`):
+   - `cinterop` builds a klib from the `kopico.h` wrapper (the same
+     overrides as konanc — the bridge in the klib also carries ARM
+     attributes);
+   - `konanc -produce static` with `-Xbinary=gc=noop -Xbinary=gcSchedulerType=manual
+     -Xallocator=std` (RP2040 has no OS/MMU — no GC threads) produces
+     `libkotlinapp.a`;
+   - linking the final ELF is done by CMake with the Pico SDK (boot2, crt0,
+     clocks) — the plugin injects its own resources: `wrapper.c` (GPIO/CYW43
+     bridge + call into Kotlin's `main`), `kopico_shim.c` (pthread/mmap/TLS
+     stubs — single-threaded environment without an MMU),
+     `kopico_stdio_globals.c` (stdout/stderr as symbols for newlib), and
+     `memmap_kopico.ld` (`.got` in FLASH); linking is done via `ld.lld` from
+     the K/N dependencies, because `ld.bfd` can't digest the Thumb
+     relocations from LLVM objects;
+   - `picotool uf2 convert` turns the ELF into a UF2.
 
-4. **Pico W / Pico 2 W:** dioda LED wisi na chipie WiFi CYW43, nie na
-   GPIO25. Wrapper kieruje operacje LED przez pin-sentinel na
-   `cyw43_arch_gpio_put`, a plugin dolinkowuje `pico_cyw43_arch_none` tylko
-   dla wariantów `_w` — kod Kotlin pozostaje wspólny.
+4. **Pico W / Pico 2 W:** the LED hangs off the CYW43 WiFi chip, not
+   GPIO25. The wrapper routes LED operations through a pin sentinel to
+   `cyw43_arch_gpio_put`, and the plugin links in `pico_cyw43_arch_none`
+   only for the `_w` variants — the Kotlin code stays shared.
 
-## Rozwój
+## Development
 
 ```bash
-./gradlew test ktlintCheck detekt   # pełna weryfikacja
-./gradlew publishToMavenLocal       # publikacja lokalna dla examples/
-KOPICO_E2E=1 ./gradlew test         # pełny test funkcjonalny (sieć, ~kilkanaście minut)
-./gradlew -p examples/blink build   # przykład end-to-end
+./gradlew test ktlintCheck detekt   # full verification
+./gradlew publishToMavenLocal       # local publish for examples/
+KOPICO_E2E=1 ./gradlew test         # full functional test (network, ~a dozen minutes)
+./gradlew -p examples/blink build   # end-to-end example
 ```
 
-Wymagania hosta: Linux x86_64, JDK 21, `git`, `cmake`, `tar`.
+Host requirements: Linux x86_64, JDK 21, `git`, `cmake`, `tar`.
