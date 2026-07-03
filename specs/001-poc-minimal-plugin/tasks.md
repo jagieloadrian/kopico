@@ -101,15 +101,17 @@ mruganie diody LED.
 - [X] T012 [US1] Konwersja ELF → UF2 — **wykonane** przez `picotool uf2
       convert` (systemowy picotool; własny `Uf2FromElf.kt` w Kotlinie
       zbędny na etapie PoC — `Uf2Writer` pluginu powstanie w T025/US2)
-- [ ] T013 [US1] **CZEKA NA FIZYCZNY SPRZĘT** (jedyny brakujący krok PoC).
-      Wgraj `poc/blink/build-k/kblink.uf2` na fizyczne urządzenie Pico w
-      trybie BOOTSEL, potwierdź wizualnie mruganie diody LED i zapisz wynik
-      w `poc/RESULTS.md`
+- [X] T013 [US1] Wgraj `kblink.uf2` na fizyczne urządzenie i potwierdź
+      mruganie diody — **wykonane (2026-07-03) na Pico W**: 5 błysków
+      diagnostycznych + ciągłe mruganie 250ms z kodu Kotlin. Wymagało
+      rebuildu pod `PICO_BOARD=pico_w` (na Pico W dioda jest na chipie
+      CYW43, nie GPIO25 — pierwsza próba z buildem `pico` machała
+      niepodłączonym pinem). Wynik zapisany w `poc/RESULTS.md`
 
-**Checkpoint**: `poc/RESULTS.md` (runda 3): **pipeline Kotlin → UF2 działa
-end-to-end**; bramka go/no-go domknięta warunkowo — pozostała wyłącznie
-walidacja na fizycznym urządzeniu (T013, wymaga użytkownika ze sprzętem).
-Pełny przepis techniczny dla Fazy 4 (US2): `poc/konan-target-spike.md`.
+**Checkpoint**: ✅ **US1 ZAKOŃCZONE — bramka go/no-go domknięta pozytywnie
+na fizycznym sprzęcie.** Kotlin/Native działa na bare-metal RP2040 (Pico W).
+Faza 4 (US2) odblokowana; pełny przepis techniczny:
+`poc/konan-target-spike.md`.
 
 ---
 

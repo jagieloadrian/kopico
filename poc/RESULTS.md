@@ -1,8 +1,22 @@
 # PoC Results — Bramka go/no-go (T013)
 
-**Data**: 2026-07-03 (runda 3 — finalna)
+**Data**: 2026-07-03 (runda 4 — ZAMKNIĘTA)
 
-## Werdykt: **SUKCES BUILDU END-TO-END** — Kotlin → UF2 działa; pozostała wyłącznie walidacja na fizycznym sprzęcie (T013)
+## Werdykt: **PEŁNY SUKCES — POTWIERDZONE NA FIZYCZNYM SPRZĘCIE**
+
+**T013 wykonane na fizycznym Raspberry Pi Pico W**: po wgraniu
+`kblink.uf2` dioda pokazała 5 błysków diagnostycznych (boot/crt0 OK), a
+następnie ciągłe mruganie 250ms sterowane z pętli w **kodzie Kotlin**
+(`Main.kt` → cinterop → CYW43). Kotlin/Native działa na bare-metal RP2040.
+
+**Ważna lekcja sprzętowa (runda 4)**: pierwsza próba na sprzęcie
+"nie działała", bo build był dla `PICO_BOARD=pico`, a płytka to **Pico W** —
+tam dioda NIE wisi na GPIO25, tylko na chipie radiowym CYW43 (WL_GPIO0,
+przez `cyw43_arch_gpio_put`, biblioteka `pico_cyw43_arch_none`). Binarki
+prawdopodobnie działały od początku, machając niepodłączonym pinem. Wniosek
+dla pluginu: rozróżnienie wariantów `_w` (FR-006) dotyczy nie tylko
+cinterop WiFi, ale już samego sterowania LED — `BoardVariant.hasWifi` musi
+wpływać na domyślny mechanizm LED w przykładach/szablonach.
 
 | Krok | Status | Dowód |
 |---|---|---|
@@ -14,7 +28,7 @@
 | T010 — cinterop (`pico.klib` z wrapperami GPIO) | ✅ Sukces (wymaga tych samych override'ów co konanc) | `poc/interop/` |
 | T011 — kompilacja blink Kotlin → ELF | ✅ Sukces — `kblink.elf`, 340 funkcji Kotlin, czysty Thumb-1 (entry 0x100001e9) | `poc/blink/` |
 | T012 — konwersja ELF → UF2 | ✅ Sukces — `kblink.uf2` (544 KB), poprawnie czytany przez `picotool info` | `poc/blink/build-k/` |
-| T013 — flash na fizyczne urządzenie i wizualna weryfikacja diody | ⏸️ **JEDYNY brakujący krok** — wymaga fizycznego Pico (BOOTSEL → skopiuj `kblink.uf2`) | — |
+| T013 — flash na fizyczne urządzenie i wizualna weryfikacja diody | ✅ **Sukces (2026-07-03)** — Pico W, 5 błysków diag + mruganie 250ms z kodu Kotlin | potwierdzenie użytkownika; wymagany rebuild pod `PICO_BOARD=pico_w` (LED przez CYW43) |
 
 ## Działający pipeline (runda 3)
 
@@ -116,17 +130,10 @@ scriptu** — wykonane w całości w ramach tego spike'u, z działającym UF2 na
 końcu. Historia rund 1-2 powyżej zachowana celowo jako zapis procesu
 dochodzenia do rozwiązania.
 
-**Rekomendowany dalszy krok**:
-1. **T013 (użytkownik, fizyczny sprzęt)**: wgrać
-   `poc/blink/build-k/kblink.uf2` na Pico (BOOTSEL) i zweryfikować mruganie
-   diody. To ostateczna walidacja bramki go/no-go — statyczna poprawność
-   jest potwierdzona narzędziowo, ale runtime init na żywym chipie może
-   jeszcze ujawnić problemy.
-2. **Po pozytywnym T013**: odblokować Fazę 4 (US2 — plugin), którego
-   zadania (`CompileNativeTask`, provisioning) mają teraz kompletny,
-   udokumentowany przepis techniczny: override'y konan.properties, patch
-   `.bc` w cache narzędzi, generacja shim/wrapper, lld, linker script.
-3. **W razie negatywnego T013**: debugować runtime init (prawdopodobne
-   pierwsze podejrzenia: konstruktory globalne, kolejność inicjalizacji
-   `kotlinapp_symbols()`, rozmiar areny mmap) — wracamy do spike'u, nie do
-   zmiany architektury.
+**T013 wykonane pozytywnie (2026-07-03, Pico W)** — bramka go/no-go
+zamknięta. **Faza 4 (US2 — plugin) jest odblokowana.** Zadania pluginu
+(`CompileNativeTask`, provisioning, `Uf2Writer`) mają kompletny,
+zweryfikowany na sprzęcie przepis techniczny: override'y konan.properties,
+patch `.bc` w cache narzędzi, generacja shim/wrapper, lld + wrapper
+filtrujący flagi, linker script z `.got` we FLASH, oraz routing LED przez
+CYW43 dla wariantów `_w`.

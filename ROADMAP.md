@@ -3,18 +3,17 @@
 Plan implementacji Gradle Pluginu `com.anjo.kopico` dla Kotlin/Native na
 Raspberry Pi Pico / Pico 2 (RP2040 / RP2350).
 
-> **✅ STATUS: Faza 0 (PoC) — build end-to-end DZIAŁA (2026-07-03, runda 3
-> spike'u).** Wcześniejsza blokada ("custom target niemożliwy bez forka
-> kompilatora") została obejściem rozwiązana: retargeting istniejącego
-> targetu `linux_arm32_hfp` przez `-Xoverride-konan-properties`
-> (cortex-m0plus/thumbv6m, static reloc) + jednorazowy patch atrybutów w
-> runtime `.bc` + ~150 linii stubów C (pthread/mmap/TLS) + link przez
-> `ld.lld` + poprawka linker scriptu. Wynik: `kblink.uf2` z kodu Kotlin,
-> poprawnie czytany przez picotool. **Jedyny brakujący krok Fazy 0:
-> walidacja na fizycznym Pico (T013)** — wgranie
-> `poc/blink/build-k/kblink.uf2` w trybie BOOTSEL i potwierdzenie mrugania
-> diody. Pełny przepis techniczny: `poc/konan-target-spike.md` § Runda 3;
+> **✅ STATUS: Faza 0 (PoC) ZAKOŃCZONA — potwierdzone na fizycznym sprzęcie
+> (2026-07-03).** Blink napisany w Kotlinie działa na fizycznym Raspberry
+> Pi Pico W (5 błysków diagnostycznych + mruganie 250ms z pętli Kotlin).
+> Technika: retargeting `linux_arm32_hfp` przez
+> `-Xoverride-konan-properties` (cortex-m0plus/thumbv6m, static reloc) +
+> jednorazowy patch atrybutów w runtime `.bc` + ~150 linii stubów C
+> (pthread/mmap/TLS) + link przez `ld.lld` + `.got` we FLASH. Lekcja
+> sprzętowa: na wariantach `_w` dioda wisi na CYW43, nie na GPIO25 — build
+> musi być per-płytka. Pełny przepis: `poc/konan-target-spike.md`;
 > werdykt i ograniczenia (gc=noop, deprecated target): `poc/RESULTS.md`.
+> **Faza 1 (minimalny plugin) odblokowana.**
 
 > **Uwaga architektoniczna**: zgodnie z Zasadą I konstytucji projektu
 > (`.specify/memory/constitution.md`), plugin działa w trybie **czystego

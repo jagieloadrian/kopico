@@ -1,19 +1,15 @@
 <!--
 Sync Impact Report
-Version change: 1.2.1 → 1.2.2
+Version change: 1.2.2 → 1.2.3
 Modified principles: none
 Added sections: none
 Removed sections: none
 Modified sections:
-  - I. Ścisła kontrola wersji toolchainu — adnotacja "Znany bloker" (v1.2.1)
-    zastąpiona "Notą techniczną": runda 3 spike'u potwierdziła działające
-    obejście (retargeting linux_arm32_hfp przez -Xoverride-konan-properties
-    + patch .bc + stuby C + lld); build Kotlin → UF2 działa end-to-end,
-    czeka na walidację sprzętową (T013). Czysto informacyjna aktualizacja
-    stanu faktycznego, nie zmiana zasady — stąd PATCH.
-Follow-up TODOs:
-  - Po pozytywnym T013 (test na fizycznym Pico): usunąć zastrzeżenie
-    "walidacja w toku" z noty.
+  - I. Ścisła kontrola wersji toolchainu — Nota techniczna zaktualizowana po
+    pozytywnym T013: technika retargetingu potwierdzona na fizycznym
+    Raspberry Pi Pico W (blink z kodu Kotlin działa). Usunięto zastrzeżenie
+    "walidacja w toku". Czysto informacyjna aktualizacja — PATCH.
+Follow-up TODOs: none
 -->
 
 <!--
@@ -59,16 +55,16 @@ Kotlin/Native ABI i Gradle toolchain resolution; sztywne wersje eliminują cał�
 klasę błędów "działa u mnie" oraz niekompatybilności między środowiskami CI a
 lokalnymi.
 
-**ℹ️ Nota techniczna (2026-07-03, zaktualizowana po rundzie 3 spike'u)**:
+**ℹ️ Nota techniczna (2026-07-03, potwierdzona na sprzęcie)**:
 Kotlin/Native 2.4.0 nie pozwala zarejestrować *nowej nazwy* targetu, ale
-spike (`specs/001-poc-minimal-plugin/poc/`) potwierdził działające
-obejście: retargeting istniejącego targetu `linux_arm32_hfp` przez
+spike (`specs/001-poc-minimal-plugin/poc/`) potwierdził — **włącznie z
+walidacją na fizycznym Raspberry Pi Pico W** — działające obejście:
+retargeting istniejącego targetu `linux_arm32_hfp` przez
 `-Xoverride-konan-properties` (cortex-m0plus/thumbv6m-none-eabi, static
 reloc) + jednorazowy patch atrybutów per-funkcja w runtime `.bc` + warstwa
-stubów C (pthread/mmap/TLS) + link przez `ld.lld`. Build Kotlin → UF2
-działa end-to-end; walidacja na fizycznym sprzęcie (T013) w toku. "Custom
-native target" w tej zasadzie realizowany jest właśnie przez ten mechanizm
-retargetingu — pełny przepis: `poc/konan-target-spike.md` § Runda 3.
+stubów C (pthread/mmap/TLS) + link przez `ld.lld`. "Custom native target"
+w tej zasadzie realizowany jest właśnie przez ten mechanizm retargetingu —
+pełny przepis: `poc/konan-target-spike.md`.
 
 ### II. 100% Kotlin, zero Javy
 
@@ -190,4 +186,4 @@ Każdy plan (`plan.md`) i przegląd kodu MUSI zawierać sekcję Constitution
 Check weryfikującą zgodność z zasadami I–V powyżej. Złamanie zasady bez
 udokumentowanego uzasadnienia w `Complexity Tracking` blokuje scalenie.
 
-**Version**: 1.2.2 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-03
+**Version**: 1.2.3 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-03

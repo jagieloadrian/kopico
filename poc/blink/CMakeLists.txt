@@ -25,4 +25,9 @@ endif()
 
 target_link_libraries(kblink pico_stdlib)
 
+# Pico W: dioda wisi na chipie CYW43, nie na GPIO — potrzebny cyw43_arch
+if(PICO_CYW43_SUPPORTED)
+    target_link_libraries(kblink pico_cyw43_arch_none)
+endif()
+
 pico_add_extra_outputs(kblink)
