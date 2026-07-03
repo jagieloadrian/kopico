@@ -40,10 +40,16 @@ Możliwe kierunki (do decyzji, nie zrealizowane w ramach tego spike'u):
 1. **Fork kompilatora Kotlin/Native** — dodać `KonanTarget` dla Cortex-M +
    dostosować runtime pod `picolibc`/freestanding. Wielomiesięczny,
    wysokim ryzyku projekt badawczy, nie "plugin Gradle".
-2. **Zmiana architektury**: Kotlin/Native kompiluje do C/LLVM IR
-   pośredniego, a finalne linkowanie/dostosowanie pod RP2040 robi
-   zewnętrzny toolchain — wymaga zbadania, czy K/N eksportuje taki
-   pośredni artefakt w użytecznej formie (nie zbadane w tym spike'u).
+2. ~~**Zmiana architektury**: pośredni artefakt LLVM/C~~ — **ZBADANE i
+   ODRZUCONE (2026-07-03)**. `-produce bitcode` jest jawnie wyłączone w
+   2.4.0 (`error: Bitcode output kind is obsolete`). `-Xsave-llvm-ir-after`
+   działa tylko w ramach kompilacji dla już wybranego, wspieranego targetu
+   — nie omija wymogu `-target`. Decydujący dowód: `runtime.bc` (GC,
+   alokator, obsługa wyjątków K/N) jest prekompilowany **per-target** i
+   istnieje wyłącznie dla wspieranych targetów — nie ma generycznej wersji.
+   Nawet wydobyty LLVM IR byłby zlinkowany z runtime'em dla hostowanego OS
+   i nie dałby się dalej skompilować pod bare-metal — ta sama przyczyna
+   źródłowa co custom target (opcja 1).
 3. **Zawężenie zakresu projektu**: Kotlin/Native tylko na hostowany Linux
    ARM (np. Raspberry Pi pełnoprawny SBC, nie mikrokontroler Pico) —
    zmienia fundamentalnie cel projektu z `ROADMAP.md`.
