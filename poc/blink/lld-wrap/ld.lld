@@ -1,0 +1,4 @@
+#!/bin/bash
+# ponytail: filtruje flagi bfd-only, których lld nie zna
+args=(); for a in "$@"; do [[ "$a" == "--no-warn-rwx-segments" ]] || args+=("$a"); done
+exec /home/diether18/.konan/dependencies/llvm-21-x86_64-linux-essentials-116/bin/ld.lld "${args[@]}"

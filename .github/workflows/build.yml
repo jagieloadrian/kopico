@@ -1,0 +1,20 @@
+name: build
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Plugin verification (test, ktlint, detekt when 2.0 will be available on mvn central)
+        run: ./gradlew test ktlintCheck
+      - name: Local publish
+        run: ./gradlew publishToMavenLocal
+      - name: Build examples/blink (SC-005)
+        run: ./gradlew -p examples/blink build

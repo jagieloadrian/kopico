@@ -1,0 +1,2 @@
+package = pico
+headers = kopico.h
