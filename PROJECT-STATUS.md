@@ -69,6 +69,12 @@ Last updated: 2026-07-03
    newlib header paths (queried via `gcc -E -Wp,-v`) and the latest lld from
    `~/.konan/dependencies`.
 
+## Housekeeping
+
+- `ToolCache.sha256` now uses `DigestInputStream` + `HexFormat` (stdlib)
+  instead of a hand-rolled buffer loop and `%02x` join — same behavior,
+  fewer lines (ponytail-review finding).
+
 ## Known PoC limitations
 
 - `gc=noop` — no memory reclamation (for long-running applications,

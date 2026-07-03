@@ -3,8 +3,11 @@ package com.anjo.kopico.provisioning
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.gradle.api.GradleException
 import java.io.File
+import java.io.OutputStream
 import java.net.URI
+import java.security.DigestInputStream
 import java.security.MessageDigest
+import java.util.HexFormat
 
 private val logger = KotlinLogging.logger {}
 
@@ -38,15 +41,8 @@ class ToolCache(gradleUserHome: File) {
 
     fun sha256(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        file.inputStream().use { input ->
-            val buffer = ByteArray(DIGEST_BUFFER_SIZE)
-            while (true) {
-                val read = input.read(buffer)
-                if (read < 0) break
-                digest.update(buffer, 0, read)
-            }
-        }
-        return digest.digest().joinToString("") { "%02x".format(it) }
+        DigestInputStream(file.inputStream(), digest).use { it.copyTo(OutputStream.nullOutputStream()) }
+        return HexFormat.of().formatHex(digest.digest())
     }
 
     fun verifySha256(
@@ -80,8 +76,6 @@ class ToolCache(gradleUserHome: File) {
     }
 
     companion object {
-        private const val DIGEST_BUFFER_SIZE = 64 * 1024
-
         fun findInPath(
             executable: String,
             path: String? = System.getenv("PATH"),
