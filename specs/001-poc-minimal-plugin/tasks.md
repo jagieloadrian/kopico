@@ -1,276 +1,285 @@
 ---
 
-description: "Task list for PoC & Minimalny Plugin Kotlin/Native dla Pico"
+description: "Task list for PoC & Minimal Kotlin/Native Plugin for Pico"
 ---
 
-# Tasks: PoC & Minimalny Plugin Kotlin/Native dla Pico
+# Tasks: PoC & Minimal Kotlin/Native Plugin for Pico
 
 **Input**: Design documents from `/specs/001-poc-minimal-plugin/`
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/extension-dsl.md, quickstart.md
 
-**Tests**: Kotest jest obowiązkowy zgodnie z Zasadą III konstytucji
-(NON-NEGOTIABLE) — zadania testowe są więc częścią każdej fazy, nie
-opcjonalne.
+**Tests**: Kotest is mandatory per Constitution Principle III
+(NON-NEGOTIABLE) — test tasks are therefore part of every phase, not
+optional.
 
-**Organization**: Zadania pogrupowane per user story (US1 = PoC, priorytet
-P1; US2 = minimalny plugin, priorytet P2) zgodnie ze `spec.md`.
+**Organization**: Tasks are grouped per user story (US1 = PoC, priority P1;
+US2 = minimal plugin, priority P2) per `spec.md`.
 
 ## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: Można wykonać równolegle (różne pliki, brak zależności)
-- **[Story]**: US1 lub US2 — tylko dla zadań fazowych per user story
-- Każde zadanie zawiera dokładną ścieżkę pliku
+- **[P]**: Can be executed in parallel (different files, no dependencies)
+- **[Story]**: US1 or US2 — only for phase tasks belonging to a specific user story
+- Every task includes an exact file path
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Inicjalizacja projektu Gradle plugin
+**Purpose**: Initialize the Gradle plugin project
 
-- [X] T001 Utwórz strukturę projektu pluginu: root `build.gradle.kts`
-      stosujący `java-gradle-plugin` + `kotlin("jvm")`, `settings.gradle.kts`,
+- [X] T001 Create the plugin project structure: root `build.gradle.kts`
+      applying `java-gradle-plugin` + `kotlin("jvm")`, `settings.gradle.kts`,
       `gradle.properties` (`group=com.anjo`, `version=0.1.0-SNAPSHOT`) per
       `plan.md` → Project Structure
-- [X] T002 [P] Skonfiguruj ktlint i detekt w `build.gradle.kts` (Zasada V
-      konstytucji)
-- [X] T003 [P] Dodaj zależności w `build.gradle.kts`:
+- [X] T002 [P] Configure ktlint and detekt in `build.gradle.kts` (Constitution
+      Principle V)
+- [X] T003 [P] Add dependencies in `build.gradle.kts`:
       `io.github.oshai:kotlin-logging`, Kotest (`kotest-runner-junit5`,
       `kotest-assertions-core`), Gradle TestKit
-- [X] T004 [P] Utwórz szkielet samodzielnego projektu `examples/blink/`:
-      `examples/blink/settings.gradle.kts` (tak by był buildowalny
-      niezależnie), pusty `examples/blink/build.gradle.kts`, placeholder
+- [X] T004 [P] Create the skeleton of the standalone `examples/blink/`
+      project: `examples/blink/settings.gradle.kts` (so it is buildable
+      independently), an empty `examples/blink/build.gradle.kts`, a placeholder
       `examples/blink/src/nativeMain/kotlin/Main.kt` per `plan.md` →
       Project Structure
 
-**Checkpoint**: Projekt się buduje (pusty moduł), ktlint/detekt działają.
+**Checkpoint**: The project builds (empty module), ktlint/detekt work.
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Model danych współdzielony przez PoC (US1) i plugin (US2)
+**Purpose**: Data model shared by the PoC (US1) and the plugin (US2)
 
-**⚠️ CRITICAL**: Blokuje obie user stories.
+**⚠️ CRITICAL**: Blocks both user stories.
 
-- [X] T005 [P] Zaimplementuj `enum class BoardVariant` (pola: `id`, `chip`,
-      `targetTriple`, `hasWifi`) w
+- [X] T005 [P] Implement `enum class BoardVariant` (fields: `id`, `chip`,
+      `targetTriple`, `hasWifi`) in
       `src/main/kotlin/com/anjo/kopico/BoardVariant.kt` per `data-model.md`
-- [X] T006 [P] Testy Kotest dla `BoardVariant` (4 warianty, poprawność
-      `targetTriple`/`hasWifi`) w
+- [X] T006 [P] Kotest tests for `BoardVariant` (4 variants, correctness of
+      `targetTriple`/`hasWifi`) in
       `src/test/kotlin/com/anjo/kopico/BoardVariantTest.kt`
 
-**Checkpoint**: `BoardVariant` gotowy i przetestowany — obie user stories
-mogą się rozpocząć.
+**Checkpoint**: `BoardVariant` ready and tested — both user stories can
+begin.
 
 ---
 
-## Phase 3: User Story 1 - Zweryfikowanie wykonalności podejścia (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - Verifying feasibility of the approach (Priority: P1) 🎯 MVP
 
-**Goal**: Potwierdzić (lub obalić) wykonalność uruchomienia kodu
-Kotlin/Native na RP2040 przez ręczny, niezautomatyzowany spike — bramka
-go/no-go dla całego projektu (`research.md` § 1).
+**Goal**: Confirm (or refute) the feasibility of running Kotlin/Native code
+on RP2040 through a manual, non-automated spike — a go/no-go gate for the
+entire project (`research.md` § 1).
 
-**Independent Test**: Skompilowany ręcznie program blink w Kotlin/Native,
-przekonwertowany na UF2 i wgrany na fizyczne urządzenie Pico, powoduje
-mruganie diody LED.
+**Independent Test**: A manually compiled blink program in Kotlin/Native,
+converted to UF2 and flashed onto a physical Pico device, causes the LED
+to blink.
 
 ### Implementation for User Story 1
 
-- [X] T007 [US1] Pobierz ręcznie toolchain ARM (xPack
-      `arm-none-eabi-gcc-xpack`, wersja pinowana w `research.md` § 5) i Pico
-      SDK (`git clone --recurse-submodules` tag `2.2.0`) do `poc/toolchain/`
-      i `poc/pico-sdk/`; udokumentuj kroki w `poc/SETUP.md`
-- [X] T008 [US1] Pobierz dystrybucję kompilatora Kotlin/Native 2.4.0
-      (Linux x86_64) do `poc/kotlin-native/` per `research.md` § 3
-- [X] T009 [US1] Podejmij próbę zdefiniowania custom targetu Kotlin/Native
-      (`armv6-m`/`thumbv6m-none-eabi`) przez rozszerzenie
-      `konan.properties` z użyciem `picolibc`; udokumentuj dokładne kroki i
-      napotkane blokery w `poc/konan-target-spike.md` per `research.md` § 1
-      — **WYNIK: PORAŻKA, empirycznie potwierdzona** (`-target` waliduje
-      względem zamkniętego enuma wkompilowanego w kompilator, przed
-      odczytem `konan.properties`; patrz `poc/konan-target-spike.md`)
-- [X] T010 [US1] Napisz minimalny plik `.def` dla cinterop w
-      `poc/interop/pico_stdlib.def` i wygeneruj klib przez CLI `cinterop` —
-      **wykonane** (klib z wrapperami GPIO; wymaga tych samych
-      `-Xoverride-konan-properties` co konanc, patrz
-      `poc/konan-target-spike.md` § Runda 3)
-- [X] T011 [US1] Napisz minimalny kod blink w `poc/blink/Main.kt` i
-      skompiluj do ELF — **wykonane** (przez retargeting
-      `linux_arm32_hfp`→cortex-m0plus + patch atrybutów `.bc` + shim C +
-      lld + custom linker script; `kblink.elf`, 340 funkcji Kotlin, czysty
+- [X] T007 [US1] Manually download the ARM toolchain (xPack
+      `arm-none-eabi-gcc-xpack`, version pinned in `research.md` § 5) and the
+      Pico SDK (`git clone --recurse-submodules` tag `2.2.0`) into
+      `poc/toolchain/` and `poc/pico-sdk/`; document the steps in
+      `poc/SETUP.md`
+- [X] T008 [US1] Download the Kotlin/Native 2.4.0 compiler distribution
+      (Linux x86_64) into `poc/kotlin-native/` per `research.md` § 3
+- [X] T009 [US1] Attempt to define a custom Kotlin/Native target
+      (`armv6-m`/`thumbv6m-none-eabi`) by extending `konan.properties` with
+      `picolibc`; document the exact steps and blockers encountered in
+      `poc/konan-target-spike.md` per `research.md` § 1 — **RESULT: FAILURE,
+      empirically confirmed** (`-target` validates against a closed enum
+      compiled into the compiler, before `konan.properties` is even read;
+      see `poc/konan-target-spike.md`)
+- [X] T010 [US1] Write a minimal `.def` file for cinterop in
+      `poc/interop/pico_stdlib.def` and generate a klib via the `cinterop`
+      CLI — **done** (klib with GPIO wrappers; requires the same
+      `-Xoverride-konan-properties` as konanc, see
+      `poc/konan-target-spike.md` § Round 3)
+- [X] T011 [US1] Write minimal blink code in `poc/blink/Main.kt` and
+      compile it to an ELF — **done** (via retargeting
+      `linux_arm32_hfp`→cortex-m0plus + `.bc` attribute patch + C shim +
+      lld + custom linker script; `kblink.elf`, 340 Kotlin functions, pure
       Thumb-1)
-- [X] T012 [US1] Konwersja ELF → UF2 — **wykonane** przez `picotool uf2
-      convert` (systemowy picotool; własny `Uf2FromElf.kt` w Kotlinie
-      zbędny na etapie PoC — `Uf2Writer` pluginu powstanie w T025/US2)
-- [X] T013 [US1] Wgraj `kblink.uf2` na fizyczne urządzenie i potwierdź
-      mruganie diody — **wykonane (2026-07-03) na Pico W**: 5 błysków
-      diagnostycznych + ciągłe mruganie 250ms z kodu Kotlin. Wymagało
-      rebuildu pod `PICO_BOARD=pico_w` (na Pico W dioda jest na chipie
-      CYW43, nie GPIO25 — pierwsza próba z buildem `pico` machała
-      niepodłączonym pinem). Wynik zapisany w `poc/RESULTS.md`
+- [X] T012 [US1] Convert ELF → UF2 — **done** via `picotool uf2
+      convert` (system picotool; a custom `Uf2FromElf.kt` in Kotlin turned
+      out unnecessary at the PoC stage — the plugin's `Uf2Writer` will be
+      built in T025/US2)
+- [X] T013 [US1] Flash `kblink.uf2` onto a physical device and confirm
+      the LED blinks — **done (2026-07-03) on a Pico W**: 5 diagnostic
+      flashes + a continuous 250ms blink from Kotlin code. Required a
+      rebuild under `PICO_BOARD=pico_w` (on the Pico W, the LED is on the
+      CYW43 chip, not GPIO25 — the first attempt with a `pico` build waved
+      a disconnected pin). Result recorded in `poc/RESULTS.md`
 
-**Checkpoint**: ✅ **US1 ZAKOŃCZONE — bramka go/no-go domknięta pozytywnie
-na fizycznym sprzęcie.** Kotlin/Native działa na bare-metal RP2040 (Pico W).
-Faza 4 (US2) odblokowana; pełny przepis techniczny:
+**Checkpoint**: ✅ **US1 COMPLETE — the go/no-go gate closed positively on
+physical hardware.** Kotlin/Native runs on bare-metal RP2040 (Pico W).
+Phase 4 (US2) unblocked; full technical recipe:
 `poc/konan-target-spike.md`.
 
 ---
 
-## Phase 4: User Story 2 - Minimalna konfiguracja pluginu przez deweloperów (Priority: P2)
+## Phase 4: User Story 2 - Minimal plugin configuration for developers (Priority: P2)
 
-**Goal**: Dostarczyć plugin `com.anjo.kopico` automatyzujący doświadczenie z
-US1: extension DSL, auto-rejestracja custom targetu, auto-cinterop,
-auto-provisioning całego toolchaina z lokalnym cache.
+**Goal**: Deliver the `com.anjo.kopico` plugin automating the experience
+from US1: extension DSL, auto-registration of the custom target,
+auto-cinterop, auto-provisioning of the entire toolchain with a local
+cache.
 
-**Independent Test**: Nowy projekt Gradle z zastosowanym pluginem,
-`board = "pico"`, bez ustawionego `sdkPath`, buduje się do działającego UF2
-bez ręcznej interwencji (patrz `quickstart.md` Scenariusz B).
+**Independent Test**: A new Gradle project with the plugin applied,
+`board = "pico"`, with no `sdkPath` set, builds a working UF2 without
+manual intervention (see `quickstart.md` Scenario B).
 
 ### Implementation for User Story 2
 
-- [X] T014 [P] [US2] Zaimplementuj `KopicoExtension` (`board: Property<String>`,
-      `sdkPath: DirectoryProperty`) w
+- [X] T014 [P] [US2] Implement `KopicoExtension` (`board: Property<String>`,
+      `sdkPath: DirectoryProperty`) in
       `src/main/kotlin/com/anjo/kopico/KopicoExtension.kt` per
       `contracts/extension-dsl.md`
-- [X] T015 [P] [US2] Testy Kotest dla `KopicoExtension` (walidacja
-      nieprawidłowego/brakującego `board`, domyślny `sdkPath`) w
+- [X] T015 [P] [US2] Kotest tests for `KopicoExtension` (validation of an
+      invalid/missing `board`, default `sdkPath`) in
       `src/test/kotlin/com/anjo/kopico/KopicoExtensionTest.kt`
-- [X] T016 [US2] Zaimplementuj `KopicoPlugin` rejestrujący extension `pico`
-      w `src/main/kotlin/com/anjo/kopico/KopicoPlugin.kt` (zależy od T014)
-- [X] T017 [P] [US2] Zaimplementuj `ToolCache`
-      (`<gradleUserHome>/caches/kopico/<narzędzie>/<wersja>/`) w
+- [X] T016 [US2] Implement `KopicoPlugin` registering the `pico` extension
+      in `src/main/kotlin/com/anjo/kopico/KopicoPlugin.kt` (depends on T014)
+- [X] T017 [P] [US2] Implement `ToolCache`
+      (`<gradleUserHome>/caches/kopico/<tool>/<version>/`) in
       `src/main/kotlin/com/anjo/kopico/provisioning/ToolCache.kt` per
-      `research.md` → Cache lokalny
-- [X] T018 [P] [US2] Zaimplementuj `PicoSdkProvisioner` (shallow git clone
-      pinowanego tagu, walidacja wersji `>= 2.2.0`, rozróżnienie
-      `USER_PROVIDED`/`AUTO_PROVISIONED`) w
+      `research.md` → Local cache
+- [X] T018 [P] [US2] Implement `PicoSdkProvisioner` (shallow git clone of
+      the pinned tag, validation of version `>= 2.2.0`, distinguishing
+      `USER_PROVIDED`/`AUTO_PROVISIONED`) in
       `src/main/kotlin/com/anjo/kopico/provisioning/PicoSdkProvisioner.kt`
       (FR-003, FR-011, FR-013)
-- [X] T019 [P] [US2] Zaimplementuj `ArmToolchainProvisioner` (sprawdzenie
-      PATH przed pobraniem, pobranie + checksum + cache z xPack
-      `arm-none-eabi-gcc-xpack` gdy brak w PATH/cache) w
+- [X] T019 [P] [US2] Implement `ArmToolchainProvisioner` (check PATH before
+      downloading, download + checksum + cache from xPack
+      `arm-none-eabi-gcc-xpack` when not in PATH/cache) in
       `src/main/kotlin/com/anjo/kopico/provisioning/ArmToolchainProvisioner.kt`
       (FR-012, FR-013)
-- [X] T020 [P] [US2] Zaimplementuj `PicotoolProvisioner` (pobranie + cache z
-      release'ów `raspberrypi/pico-sdk-tools`) w
+- [X] T020 [P] [US2] Implement `PicotoolProvisioner` (download + cache from
+      `raspberrypi/pico-sdk-tools` releases) in
       `src/main/kotlin/com/anjo/kopico/provisioning/PicotoolProvisioner.kt`
       (FR-013)
-- [X] T021 [P] [US2] Zaimplementuj `OpenOcdProvisioner` (pobranie + cache z
-      release'ów `raspberrypi/pico-sdk-tools`) w
+- [X] T021 [P] [US2] Implement `OpenOcdProvisioner` (download + cache from
+      `raspberrypi/pico-sdk-tools` releases) in
       `src/main/kotlin/com/anjo/kopico/provisioning/OpenOcdProvisioner.kt`
       (FR-013)
-- [X] T022 [P] [US2] Zaimplementuj `KotlinNativeProvisioner` (pobranie
-      dystrybucji Kotlin/Native 2.4.0 z GitHub Releases `JetBrains/kotlin`
-      + weryfikacja `.sha256` + cache; **krok post-instalacyjny: patch
-      atrybutów per-funkcja w `konan/targets/linux_arm32_hfp/native/*.bc`**
-      — `clang -x ir → sed target-cpu/target-features → clang -c
-      -emit-llvm`, per `poc/konan-target-spike.md` § Runda 3) w
+- [X] T022 [P] [US2] Implement `KotlinNativeProvisioner` (download the
+      Kotlin/Native 2.4.0 distribution from `JetBrains/kotlin` GitHub
+      Releases + `.sha256` verification + cache; **post-install step:
+      patch per-function attributes in
+      `konan/targets/linux_arm32_hfp/native/*.bc`** — `clang -x ir → sed
+      target-cpu/target-features → clang -c -emit-llvm`, per
+      `poc/konan-target-spike.md` § Round 3) in
       `src/main/kotlin/com/anjo/kopico/provisioning/KotlinNativeProvisioner.kt`
-      (FR-013; research.md § 3 — kompilator K/N jest częścią provisionowanego
-      toolchaina)
-- [X] T023 [US2] Testy Kotest dla provisionerów w
+      (FR-013; research.md § 3 — the K/N compiler is part of the
+      provisioned toolchain)
+- [X] T023 [US2] Kotest tests for the provisioners in
       `src/test/kotlin/com/anjo/kopico/provisioning/ProvisionersTest.kt`,
-      obejmujące explicite: trafienie/brak trafienia w cache, błąd sumy
-      kontrolnej → czytelny błąd konfiguracji, **odrzucenie SDK w wersji
-      `< 2.2.0`** (FR-011), **użycie toolchaina już dostępnego w PATH bez
-      pobierania** (FR-012), oraz **idempotencję patcha `.bc`**
-      (dwukrotne uruchomienie = ten sam wynik) (zależy od T018-T022)
-- [X] T024 [US2] Zaimplementuj `CinteropTask` wywołujący CLI `cinterop` dla
-      `pico_stdlib`/`hardware_gpio`/`hardware_pwm` (+ `pico_cyw43_arch` dla
-      wariantów `_w`) w
-      `src/main/kotlin/com/anjo/kopico/tasks/CinteropTask.kt` — z tymi
-      samymi `-Xoverride-konan-properties` co `CompileNativeTask` (bridge w
-      klib niesie atrybuty ARM; per `poc/konan-target-spike.md` § Runda 3)
-      (FR-005, FR-006; zależy od T016, T018, T022)
-- [X] T025 [US2] Zaimplementuj `CompileNativeTask` wywołujący `konanc` z
-      retargetingiem opartym o `BoardVariant`: jawne flagi per
-      `poc/konan-target-spike.md` § Runda 3 —
-      `-Xoverride-konan-properties` (`targetCpu`, `targetCpuFeatures` z
+      explicitly covering: cache hit/miss, checksum failure → readable
+      configuration error, **rejection of an SDK version `< 2.2.0`**
+      (FR-011), **use of a toolchain already available on PATH without
+      downloading** (FR-012), and **idempotency of the `.bc` patch**
+      (running it twice = the same result) (depends on T018-T022)
+- [X] T024 [US2] Implement `CinteropTask` invoking the `cinterop` CLI for
+      `pico_stdlib`/`hardware_gpio`/`hardware_pwm` (+ `pico_cyw43_arch` for
+      `_w` variants) in
+      `src/main/kotlin/com/anjo/kopico/tasks/CinteropTask.kt` — with the
+      same `-Xoverride-konan-properties` as `CompileNativeTask` (the klib
+      bridge carries the ARM attributes; per
+      `poc/konan-target-spike.md` § Round 3)
+      (FR-005, FR-006; depends on T016, T018, T022)
+- [X] T025 [US2] Implement `CompileNativeTask` invoking `konanc` with
+      retargeting based on `BoardVariant`: explicit flags per
+      `poc/konan-target-spike.md` § Round 3 —
+      `-Xoverride-konan-properties` (`targetCpu`, `targetCpuFeatures` from
       `+thumb-mode,+soft-float`, `targetTriple`,
       `staticLibraryRelocationMode=static`), `-Xbinary=gc=noop`,
       `-Xbinary=gcSchedulerType=manual`, `-Xallocator=std`,
-      `-produce static` — w
+      `-produce static` — in
       `src/main/kotlin/com/anjo/kopico/tasks/CompileNativeTask.kt` (FR-001,
-      FR-004; zależy od T024)
-- [X] T026 [US2] Zaimplementuj `LinkTask` — finalne linkowanie
-      `libapp.a` z pico-sdk (boot2, crt0, clocks) do ELF: dostarczenie
-      `kopico_shim.c`, wrappera GPIO/CYW43 i linker scriptu (`.got` we
-      FLASH) jako zasobów pluginu (`src/main/resources/kopico/`),
-      orkiestracja linku przez `arm-none-eabi-g++` + `ld.lld` (wrapper
-      filtrujący flagi bfd-only) per `poc/konan-target-spike.md` § Runda 3
-      i `poc/blink/CMakeLists.txt` — w
-      `src/main/kotlin/com/anjo/kopico/tasks/LinkTask.kt` (FR-007; zależy
-      od T025, T019, T022)
-- [X] T027 [US2] Zaimplementuj `GenerateUf2Task` wywołujący provisionowany
-      `picotool uf2 convert` na ELF z `LinkTask` w
+      FR-004; depends on T024)
+- [X] T026 [US2] Implement `LinkTask` — final linking of
+      `libapp.a` with pico-sdk (boot2, crt0, clocks) into an ELF: providing
+      `kopico_shim.c`, the GPIO/CYW43 wrapper, and the linker script
+      (`.got` in FLASH) as plugin resources (`src/main/resources/kopico/`),
+      orchestrating the link via `arm-none-eabi-g++` + `ld.lld` (a wrapper
+      filtering bfd-only flags) per `poc/konan-target-spike.md` § Round 3
+      and `poc/blink/CMakeLists.txt` — in
+      `src/main/kotlin/com/anjo/kopico/tasks/LinkTask.kt` (FR-007; depends
+      on T025, T019, T022)
+- [X] T027 [US2] Implement `GenerateUf2Task` invoking the provisioned
+      `picotool uf2 convert` on the ELF from `LinkTask` in
       `src/main/kotlin/com/anjo/kopico/tasks/GenerateUf2Task.kt` (FR-007;
-      zależy od T026, T020; własny `Uf2Writer` zbędny — picotool i tak jest
-      provisionowany per FR-013, patrz `research.md` § 4)
-- [X] T028 [US2] Podłącz w `KopicoPlugin` pełny pipeline zadań (Cinterop →
-      CompileNative → Link → GenerateUf2) oraz walidację/czytelne błędy
-      konfiguracji w fazie configuration w
-      `src/main/kotlin/com/anjo/kopico/KopicoPlugin.kt` (FR-008; zależy od
+      depends on T026, T020; a custom `Uf2Writer` unnecessary — picotool is
+      already provisioned per FR-013, see `research.md` § 4)
+- [X] T028 [US2] Wire the full task pipeline (Cinterop →
+      CompileNative → Link → GenerateUf2) and configuration-phase
+      validation/readable errors in `KopicoPlugin` in
+      `src/main/kotlin/com/anjo/kopico/KopicoPlugin.kt` (FR-008; depends on
       T016, T024, T025, T026, T027)
-- [X] T029 [US2] Uzupełnij `examples/blink` (`build.gradle.kts` stosujący
-      plugin, kod blink w
-      `examples/blink/src/nativeMain/kotlin/Main.kt`) per `plan.md` i
-      `quickstart.md` Scenariusz B. **Uwaga (lekcja z PoC)**: na wariantach
-      `_w` dioda wisi na CYW43, nie GPIO25 — przykład musi obsługiwać oba
-      przypadki przez routing w warstwie wrappera (per
-      `poc/blink/wrapper.c`), a README przykładu musi wskazywać właściwy
-      `board` dla posiadanej płytki (zależy od T028)
-- [X] T030 [US2] Test funkcjonalny Gradle TestKit uruchamiający pełny build
-      `examples/blink` (pierwsze uruchomienie z siecią — z pomiarem czasu i
-      asercją `< 15 minut` per SC-002, potem `--offline` rerun per SC-006)
-      w
+- [X] T029 [US2] Fill in `examples/blink` (`build.gradle.kts` applying the
+      plugin, blink code in
+      `examples/blink/src/nativeMain/kotlin/Main.kt`) per `plan.md` and
+      `quickstart.md` Scenario B. **Note (lesson from the PoC)**: on `_w`
+      variants the LED is on the CYW43 chip, not GPIO25 — the example must
+      handle both cases through routing in the wrapper layer (per
+      `poc/blink/wrapper.c`), and the example's README must indicate the
+      correct `board` for the owned device (depends on T028)
+- [X] T030 [US2] Gradle TestKit functional test running a full build of
+      `examples/blink` (first run with network access — timed with an
+      assertion of `< 15 minutes` per SC-002, then an `--offline` rerun per
+      SC-006)
+      in
       `src/test/kotlin/com/anjo/kopico/KopicoPluginFunctionalTest.kt` per
-      `quickstart.md` Scenariusz B (SC-002, SC-003, SC-006; zależy od T029)
-- [X] T031 [P] [US2] Testy Kotest dla `CinteropTask` asercjące zachowanie
-      cinterop CYW43 dla wszystkich 4 wariantów płytek (`pico`/`pico_w`
-      obecność/brak `pico_cyw43_arch`, analogicznie `pico2`/`pico2_w`) w
+      `quickstart.md` Scenario B (SC-002, SC-003, SC-006; depends on T029)
+- [X] T031 [P] [US2] Kotest tests for `CinteropTask` asserting CYW43
+      cinterop behavior for all 4 board variants (`pico`/`pico_w`
+      presence/absence of `pico_cyw43_arch`, likewise `pico2`/`pico2_w`) in
       `src/test/kotlin/com/anjo/kopico/tasks/CinteropTaskTest.kt` (FR-006,
-      SC-004; zależy od T024)
-- [X] T032 [US2] Opublikuj plugin lokalnie
-      (`./gradlew publishToMavenLocal`) i zweryfikuj, że `examples/blink`
-      rozwiązuje go jako zewnętrzny plugin (FR-009; zależy od T028)
+      SC-004; depends on T024)
+- [X] T032 [US2] Publish the plugin locally
+      (`./gradlew publishToMavenLocal`) and verify that `examples/blink`
+      resolves it as an external plugin (FR-009; depends on T028)
 
-**Checkpoint**: ✅ **US2 ZAKOŃCZONE (2026-07-03)** — E2E TestKit: nowy projekt
-z `board = "pico"` bez `sdkPath` → UF2 w 2m16s (SC-002 ✓), rerun `--offline`
-z cache ✓ (SC-006), wariant `pico_w` buduje się bez dodatkowej konfiguracji ✓
-(SC-003). Odstępstwa od pierwotnego opisu zadań (wymuszone empirycznie):
-(1) T024 — cinterop buduje jeden klib z wrappera `kopico.h` (jak w PoC),
-a nie osobne klib-y per biblioteka SDK; zestaw bibliotek SDK per wariant
-(w tym `pico_cyw43_arch_none` dla `_w`) wyznacza `CinteropTask.sdkLibrariesFor`
-i linkuje LinkTask; cinterop dostaje też ścieżki nagłówków newlib odpytane
-z `arm-none-eabi-gcc -E -Wp,-v`. (2) T026 — finalny link orkiestruje CMake
-z pico-sdk (generowany z zasobu `CMakeLists.txt`), nie ręczne wywołanie
-`arm-none-eabi-g++`; lld wybierany jako najnowszy z `~/.konan/dependencies/llvm-*`.
-(3) T019 — gcc z PATH akceptowany tylko w pinowanej wersji major (15);
-systemowy gcc 13 produkuje ELF odrzucany przez picotool
+**Checkpoint**: ✅ **US2 COMPLETE (2026-07-03)** — E2E TestKit: a new project
+with `board = "pico"` and no `sdkPath` → UF2 in 2m16s (SC-002 ✓), an
+`--offline` rerun with cache ✓ (SC-006), the `pico_w` variant builds
+without additional configuration ✓ (SC-003). Deviations from the original
+task description (forced empirically):
+(1) T024 — cinterop builds a single klib from a `kopico.h` wrapper (as in
+the PoC), not separate klibs per SDK library; the set of SDK libraries per
+variant (including `pico_cyw43_arch_none` for `_w`) is determined by
+`CinteropTask.sdkLibrariesFor` and linked by LinkTask; cinterop also
+receives newlib header paths queried from
+`arm-none-eabi-gcc -E -Wp,-v`. (2) T026 — the final link orchestrates
+CMake with pico-sdk (generated from the `CMakeLists.txt` resource), not a
+manual `arm-none-eabi-g++` call; lld is selected as the newest one from
+`~/.konan/dependencies/llvm-*`.
+(3) T019 — gcc from PATH is accepted only in the pinned major version
+(15); system gcc 13 produces an ELF rejected by picotool
 ("memory contents for uninitialized memory at 0x20000000").
-(4) T030 — test E2E bramkowany zmienną `KOPICO_E2E=1` (sieć + minuty
-buildu nie należą do domyślnego `./gradlew test`; CI buduje `examples/blink`
-wprost per T035).
+(4) T030 — the E2E test is gated behind the `KOPICO_E2E=1` variable
+(network access + build minutes are not part of the default
+`./gradlew test`; CI builds `examples/blink` directly per T035).
 
 ---
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-**Purpose**: Dokumentacja, CI i finalna weryfikacja jakości
+**Purpose**: Documentation, CI, and final quality verification
 
-- [X] T033 [P] Napisz `README.md` opisujący użycie pluginu (extension DSL,
-      auto-provisioning) z odwołaniem do `contracts/extension-dsl.md` i
+- [X] T033 [P] Write `README.md` describing plugin usage (extension DSL,
+      auto-provisioning) referencing `contracts/extension-dsl.md` and
       `quickstart.md` (FR-010)
-- [X] T034 [P] Udokumentuj ręczny proces konfiguracji (na bazie
-      `poc/SETUP.md` i `poc/konan-target-spike.md`) jako sekcję "jak to
-      działa pod maską" w `README.md` (FR-010)
-- [X] T035 [P] Utwórz minimalny, jednojobowy, zautomatyzowany workflow CI
-      (np. `.github/workflows/build.yml`) budujący `examples/blink` na
-      czystym środowisku Linux przy każdym pushu (SC-005) — jeden job, bez
-      publikacji artefaktów/release automation (to pozostaje Fazą 5 z
+- [X] T034 [P] Document the manual configuration process (based on
+      `poc/SETUP.md` and `poc/konan-target-spike.md`) as a "how it works
+      under the hood" section in `README.md` (FR-010)
+- [X] T035 [P] Create a minimal, single-job, automated CI workflow (e.g.
+      `.github/workflows/build.yml`) building `examples/blink` on a clean
+      Linux environment on every push (SC-005) — one job, without
+      publishing artifacts/release automation (that remains Phase 5 of
       `ROADMAP.md`)
-- [X] T036 Uruchom pełną weryfikację przez `ponytail` (ktlint, detekt, cały
-      pakiet testów Kotest) dla całego modułu przed uznaniem Fazy 0/1 za
-      zakończoną (Zasada V konstytucji)
+- [X] T036 Run full verification via `ponytail` (ktlint, detekt, the full
+      Kotest test suite) for the whole module before considering Phase 0/1
+      complete (Constitution Principle V)
 
 ---
 
@@ -278,33 +287,33 @@ wprost per T035).
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: Brak zależności — start natychmiastowy
-- **Foundational (Phase 2)**: Zależy od Setup — BLOKUJE obie user stories
-- **User Story 1 (Phase 3)**: Zależy od Foundational; niezależna od US2
-  (poza tym, że jej wyniki — T009, T011 — informują implementację T024 w
-  US2)
-- **User Story 2 (Phase 4)**: Zależy od Foundational; T024 (custom target w
-  pluginie) korzysta z ustaleń T009/T011 z US1 — US1 powinna zostać
-  ukończona (lub przynajmniej T009 potwierdzone) przed T024
-- **Polish (Phase 5)**: Zależy od ukończenia US1 i US2 (T035 dodatkowo
-  zależy od T029, bo CI buduje `examples/blink`)
+- **Setup (Phase 1)**: No dependencies — starts immediately
+- **Foundational (Phase 2)**: Depends on Setup — BLOCKS both user stories
+- **User Story 1 (Phase 3)**: Depends on Foundational; independent of US2
+  (except that its results — T009, T011 — inform the implementation of
+  T024 in US2)
+- **User Story 2 (Phase 4)**: Depends on Foundational; T024 (custom target
+  in the plugin) draws on the findings of T009/T011 from US1 — US1 should
+  be complete (or at least T009 confirmed) before T024
+- **Polish (Phase 5)**: Depends on completion of US1 and US2 (T035
+  additionally depends on T029, since CI builds `examples/blink`)
 
 ### Parallel Opportunities
 
-- Setup: T002, T003, T004 równolegle po T001
-- Foundational: T005, T006 równolegle
-- US1: sekwencyjne (T007→T008→T009→T010→T011→T012→T013) — każdy krok
-  zależy od poprzedniego stanu środowiska
-- US2: T014/T015 równolegle; T017-T022 (provisionery + cache) równolegle po
-  T016; T031 równolegle z T025+ po T024
-- Polish: T033, T034, T035 równolegle
+- Setup: T002, T003, T004 in parallel after T001
+- Foundational: T005, T006 in parallel
+- US1: sequential (T007→T008→T009→T010→T011→T012→T013) — each step
+  depends on the environment state left by the previous one
+- US2: T014/T015 in parallel; T017-T022 (provisioners + cache) in parallel
+  after T016; T031 in parallel with T025+ after T024
+- Polish: T033, T034, T035 in parallel
 
 ---
 
 ## Parallel Example: Foundational + US2 provisioning
 
 ```bash
-# Po T016 (KopicoPlugin gotowy), provisionery równolegle:
+# After T016 (KopicoPlugin ready), provisioners in parallel:
 Task: "Implement PicoSdkProvisioner in src/main/kotlin/com/anjo/kopico/provisioning/PicoSdkProvisioner.kt"
 Task: "Implement ArmToolchainProvisioner in src/main/kotlin/com/anjo/kopico/provisioning/ArmToolchainProvisioner.kt"
 Task: "Implement PicotoolProvisioner in src/main/kotlin/com/anjo/kopico/provisioning/PicotoolProvisioner.kt"
@@ -318,35 +327,37 @@ Task: "Implement KotlinNativeProvisioner in src/main/kotlin/com/anjo/kopico/prov
 
 ### MVP First (User Story 1 Only)
 
-1. Ukończ Phase 1: Setup
-2. Ukończ Phase 2: Foundational
-3. Ukończ Phase 3: User Story 1 (PoC) — **STOP i zweryfikuj `poc/RESULTS.md`**
-4. Jeśli PoC potwierdza wykonalność → kontynuuj do Phase 4 (US2). Jeśli nie
-   → eskaluj do użytkownika przed dalszą pracą (patrz `plan.md` → Summary).
+1. Complete Phase 1: Setup
+2. Complete Phase 2: Foundational
+3. Complete Phase 3: User Story 1 (PoC) — **STOP and verify `poc/RESULTS.md`**
+4. If the PoC confirms feasibility → continue to Phase 4 (US2). If not →
+   escalate to the user before further work (see `plan.md` → Summary).
 
 ### Incremental Delivery
 
-1. Setup + Foundational → fundament gotowy
-2. US1 (PoC) → potwierdzenie wykonalności (bramka go/no-go)
-3. US2 (plugin) → pierwszy publikowalny artefakt projektu
-4. Polish → dokumentacja, CI i finalna weryfikacja jakości
+1. Setup + Foundational → foundation ready
+2. US1 (PoC) → feasibility confirmed (go/no-go gate)
+3. US2 (plugin) → first publishable artifact of the project
+4. Polish → documentation, CI, and final quality verification
 
 ---
 
 ## Notes
 
-- [P] = różne pliki, brak zależności
-- [Story] mapuje zadanie do konkretnej user story
-- Testy Kotest są obowiązkowe (Zasada III) — pisane przed lub równolegle z
-  implementacją danego komponentu
-- Każde zadanie implementacyjne (T005+) wykonywane zgodnie z zasadami
-  `ponytail` (YAGNI, reużycie, najkrótsza działająca implementacja) — nie
-  tylko finalna weryfikacja w T036 (Zasada V konstytucji, v1.1.0)
-- Zasada II (100% Kotlin) dotyczy kodu źródłowego i logiki **pluginu**.
-  Pliki C będące zasobami runtime docelowego (shim/wrapper/linker script w
-  `src/main/resources/kopico/` i ich pierwowzory w `poc/blink/`) to
-  artefakty wstrzykiwane do builda użytkownika dla bare-metal ARM — nie
-  logika pluginu; C jest tam nieuniknione (mostkowanie sprzętu, ABI).
-  Skrypty pomocnicze/narzędziowe pluginu pozostają wyłącznie w Kotlinie
-- Commituj po każdym zadaniu lub logicznej grupie zadań, delegując commit
-  do agenta `git-committer` (Zasada V)
+- [P] = different files, no dependencies
+- [Story] maps a task to a specific user story
+- Kotest tests are mandatory (Principle III) — written before or alongside
+  the implementation of the given component
+- Every implementation task (T005+) is carried out following the
+  `ponytail` principles (YAGNI, reuse, shortest working implementation) —
+  not just the final verification in T036 (Constitution Principle V,
+  v1.1.0)
+- Principle II (100% Kotlin) applies to the source code and logic of the
+  **plugin**. C files that are runtime resources for the target
+  (shim/wrapper/linker script in `src/main/resources/kopico/` and their
+  originals in `poc/blink/`) are artifacts injected into the user's build
+  for bare-metal ARM — not plugin logic; C is unavoidable there (hardware
+  bridging, ABI). The plugin's own helper/tooling scripts remain
+  exclusively in Kotlin
+- Commit after each task or logical group of tasks, delegating the commit
+  to the `git-committer` agent (Principle V)

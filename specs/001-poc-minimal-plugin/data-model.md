@@ -1,70 +1,72 @@
-# Data Model: PoC & Minimalny Plugin Kotlin/Native dla Pico
+# Data Model: PoC & Minimal Kotlin/Native Plugin for Pico
 
-Wyekstrahowane z `spec.md` (sekcja Key Entities) i doprecyzowane wymaganiami
-funkcjonalnymi (FR-003 do FR-014).
+Extracted from `spec.md` (Key Entities section) and refined by the
+functional requirements (FR-003 through FR-014).
 
 ## BoardVariant
 
-Reprezentuje wspieraną płytkę docelową.
+Represents a supported target board.
 
-| Pole | Typ | Opis |
+| Field | Type | Description |
 |---|---|---|
-| `id` | `String` | jedna z: `"pico"`, `"pico_w"`, `"pico2"`, `"pico2_w"` (FR-003) |
-| `chip` | enum `RP2040` \| `RP2350` | rodzina mikrokontrolera |
-| `targetTriple` | `String` | `thumbv6m-none-eabi` (RP2040) lub `thumbv8m.main-none-eabi`/`eabihf` (RP2350) — FR-004 |
-| `hasWifi` | `Boolean` | `true` dla `pico_w`/`pico2_w` — steruje FR-006 (cinterop CYW43) |
+| `id` | `String` | one of: `"pico"`, `"pico_w"`, `"pico2"`, `"pico2_w"` (FR-003) |
+| `chip` | enum `RP2040` \| `RP2350` | microcontroller family |
+| `targetTriple` | `String` | `thumbv6m-none-eabi` (RP2040) or `thumbv8m.main-none-eabi`/`eabihf` (RP2350) — FR-004 |
+| `hasWifi` | `Boolean` | `true` for `pico_w`/`pico2_w` — drives FR-006 (CYW43 cinterop) |
 
-**Walidacja**: `id` spoza czterech dozwolonych wartości → błąd konfiguracji
-(FR-008, edge case "nieprawidłowa wartość board").
+**Validation**: an `id` outside the four allowed values → configuration
+error (FR-008, "invalid board value" edge case).
 
-**Reprezentacja**: `enum class BoardVariant` — zbiór jest zamknięty i znany w
-czasie kompilacji pluginu (4 elementy), enum jest naturalnym, najprostszym
-wyborem (brak potrzeby rozszerzalności w tej fazie).
+**Representation**: `enum class BoardVariant` — the set is closed and
+known at plugin compile time (4 elements), an enum is the natural,
+simplest choice (no need for extensibility at this stage).
 
 ## PicoSdkReference
 
-Reprezentuje źródło Pico SDK używane do cinterop.
+Represents the Pico SDK source used for cinterop.
 
-| Pole | Typ | Opis |
+| Field | Type | Description |
 |---|---|---|
-| `path` | `Provider<Directory>` | jawnie ustawiony przez `sdkPath` (opcjonalny — FR-003) lub wskazujący na cache po auto-provisioningu (FR-013) |
-| `version` | `String` | odczytana z `pico_sdk_version.cmake` w SDK; musi być `>= 2.2.0` (FR-011) |
-| `origin` | enum `USER_PROVIDED` \| `AUTO_PROVISIONED` | determinuje zachowanie walidacji: `USER_PROVIDED` → błąd przy niezgodności (FR-008); `AUTO_PROVISIONED` → plugin sam pobiera zgodną wersję (FR-013) |
+| `path` | `Provider<Directory>` | explicitly set via `sdkPath` (optional — FR-003) or pointing to the cache after auto-provisioning (FR-013) |
+| `version` | `String` | read from `pico_sdk_version.cmake` in the SDK; must be `>= 2.2.0` (FR-011) |
+| `origin` | enum `USER_PROVIDED` \| `AUTO_PROVISIONED` | determines validation behavior: `USER_PROVIDED` → error on mismatch (FR-008); `AUTO_PROVISIONED` → the plugin downloads a matching version itself (FR-013) |
 
-**Reguła**: jeśli `origin == USER_PROVIDED` i `version < 2.2.0` (lub SDK
-niekompletne/nieistniejące) → build kończy się czytelnym błędem; auto-
-provisioning NIE nadpisuje jawnego wyboru dewelopera (edge case ze spec.md).
+**Rule**: if `origin == USER_PROVIDED` and `version < 2.2.0` (or the SDK
+is incomplete/nonexistent) → the build fails with a readable error;
+auto-provisioning does NOT override the developer's explicit choice (edge
+case from spec.md).
 
 ## ProvisionedTool
 
-Reprezentuje pojedyncze narzędzie zewnętrzne dostarczane automatycznie przez
-plugin (FR-013/FR-014): Pico SDK, toolchain ARM, `picotool`, OpenOCD.
+Represents a single external tool automatically provided by the plugin
+(FR-013/FR-014): Pico SDK, ARM toolchain, `picotool`, OpenOCD.
 
-| Pole | Typ | Opis |
+| Field | Type | Description |
 |---|---|---|
-| `name` | enum `PICO_SDK` \| `ARM_TOOLCHAIN` \| `PICOTOOL` \| `OPENOCD` \| `KOTLIN_NATIVE` | identyfikator narzędzia (K/N dodany po PoC — kompilator jest częścią provisionowanego toolchaina, `research.md` § 3; jego provisioning obejmuje post-instalacyjny patch atrybutów `.bc`) |
-| `pinnedVersion` | `String` | przypięta wersja/tag do pobrania |
+| `name` | enum `PICO_SDK` \| `ARM_TOOLCHAIN` \| `PICOTOOL` \| `OPENOCD` \| `KOTLIN_NATIVE` | tool identifier (K/N added after the PoC — the compiler is part of the provisioned toolchain, `research.md` § 3; its provisioning includes a post-install `.bc` attribute patch) |
+| `pinnedVersion` | `String` | the pinned version/tag to download |
 | `cacheDir` | `Directory` | `<gradleUserHome>/caches/kopico/<name>/<pinnedVersion>/` |
-| `sourceUrl` | `String` | adres pobrania (release tarball / git remote) — patrz `research.md` dla konkretnych źródeł |
-| `checksum` | `String?` | suma kontrolna do weryfikacji pobranego artefaktu (gdy dostępna u źródła) |
+| `sourceUrl` | `String` | download address (release tarball / git remote) — see `research.md` for concrete sources |
+| `checksum` | `String?` | checksum for verifying the downloaded artifact (when available at the source) |
 
-**Cykl życia**: `cacheDir` sprawdzany jako pierwszy (offline-first, SC-006);
-brak trafienia w cache → pobranie z `sourceUrl`, weryfikacja `checksum` (jeśli
-dostępna), zapis do `cacheDir`; błąd pobrania/weryfikacji → błąd konfiguracji
-czytelny dla użytkownika (FR-008).
+**Lifecycle**: `cacheDir` is checked first (offline-first, SC-006); a
+cache miss → download from `sourceUrl`, verify `checksum` (if available),
+save to `cacheDir`; a download/verification failure → a configuration error
+readable to the user (FR-008).
 
 ## BuildArtifact
 
-Wynik builda gotowy do flashowania.
+The build output ready for flashing.
 
-| Pole | Typ | Opis |
+| Field | Type | Description |
 |---|---|---|
-| `staticLib` | `RegularFile` | `libapp.a` z `konanc -produce static` (FR-001) — PoC wykazał, że konanc nie produkuje ELF bezpośrednio |
-| `elfFile` | `RegularFile` | wynik `LinkTask` (link z pico-sdk + shim C + lld) |
-| `uf2File` | `RegularFile` | wynik `GenerateUf2Task` — provisionowany `picotool uf2 convert` (FR-002, FR-007) |
-| `boardVariant` | `BoardVariant` | płytka, dla której artefakt został zbudowany |
+| `staticLib` | `RegularFile` | `libapp.a` from `konanc -produce static` (FR-001) — the PoC showed that konanc does not directly produce an ELF |
+| `elfFile` | `RegularFile` | the result of `LinkTask` (link against pico-sdk + C shim + lld) |
+| `uf2File` | `RegularFile` | the result of `GenerateUf2Task` — provisioned `picotool uf2 convert` (FR-002, FR-007) |
+| `boardVariant` | `BoardVariant` | the board the artifact was built for |
 
-**Relacje**: `BuildArtifact` powstaje z `PicoSdkReference` + `BoardVariant` +
-zestawu `ProvisionedTool` (kompilator K/N, toolchain ARM, picotool) przez
-pipeline zadań Gradle (`CinteropTask` → `CompileNativeTask` → `LinkTask` →
-`GenerateUf2Task`, patrz `plan.md` → Project Structure).
+**Relations**: `BuildArtifact` is produced from `PicoSdkReference` +
+`BoardVariant` + a set of `ProvisionedTool`s (K/N compiler, ARM toolchain,
+picotool) through a Gradle task pipeline (`CinteropTask` →
+`CompileNativeTask` → `LinkTask` → `GenerateUf2Task`, see `plan.md` →
+Project Structure).

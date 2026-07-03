@@ -1,135 +1,138 @@
-# Research: PoC & Minimalny Plugin Kotlin/Native dla Pico
+# Research: PoC & Minimal Kotlin/Native Plugin for Pico
 
-## 1. Wykonalność bare-metal ARM jako target Kotlin/Native (RYZYKO KRYTYCZNE)
+## 1. Feasibility of bare-metal ARM as a Kotlin/Native target (CRITICAL RISK)
 
-**Decision**: Faza 0 (spike, timebox 1-2 tygodnie zgodnie z `ROADMAP.md`)
-jest jawnie traktowana jako **bramka go/no-go** dla całego projektu, nie
-formalność. Podejście: rozszerzenie definicji targetu Kotlin/Native (mechanizm
-`konan.properties`/toolchain config) o custom target `armv6-m`
-(`thumbv6m-none-eabi`) z użyciem `picolibc` jako libc/runtime dla środowiska
-bez OS, zamiast czekać na oficjalne wsparcie.
+**Decision**: Phase 0 (spike, timeboxed to 1-2 weeks per `ROADMAP.md`) is
+explicitly treated as a **go/no-go gate** for the entire project, not a
+formality. Approach: extend the Kotlin/Native target definition mechanism
+(`konan.properties`/toolchain config) with a custom `armv6-m`
+(`thumbv6m-none-eabi`) target using `picolibc` as the libc/runtime for an
+OS-less environment, instead of waiting for official support.
 
-**Rationale**: Zweryfikowano źródłowo:
-- Oficjalna lista wspieranych targetów Kotlin/Native
-  (kotlinlang.org/docs/native-target-support.html) obejmuje wyłącznie
-  hostowane systemy (macOS/iOS/Linux/Android/Windows/watchOS/tvOS) — **brak
-  jakiegokolwiek targetu bare-metal/freestanding**.
-- Ticket JetBrains **KT-44498** ("Add RP2040 As A Kotlin Native Target")
-  jest **otwarty, nieprzypisany, bez zaplanowanej wersji** — czyste zgłoszenie
-  backlogowe, nie feature w toku.
-- Istnieje aktywna, ale **niedokończona** próba społeczności (Raspberry Pi
-  Forums, Kotlin Slack #compiler) użycia custom targetu `armv6-m` przez
-  `konan.properties` + `picolibc`. Runtime Kotlin/Native (GC, refleksja,
-  model pamięci) zakłada hostowany libc/OS — kontrybutorzy raportują
-  nierozwiązane blokery przy budowaniu samego runtime'u K/N pod RP2040.
-  **Brak dowodu działającego end-to-end builda produkującego UF2** ze
-  standardowym kompilatorem, ale też brak dowodu, że jest to definitywnie
-  niemożliwe.
+**Rationale**: Verified from primary sources:
+- The official list of supported Kotlin/Native targets
+  (kotlinlang.org/docs/native-target-support.html) covers only hosted
+  systems (macOS/iOS/Linux/Android/Windows/watchOS/tvOS) — **no bare-metal/
+  freestanding target whatsoever**.
+- The JetBrains ticket **KT-44498** ("Add RP2040 As A Kotlin Native
+  Target") is **open, unassigned, with no planned version** — a plain
+  backlog report, not a feature in progress.
+- There is an active but **unfinished** community attempt (Raspberry Pi
+  Forums, Kotlin Slack #compiler) to use a custom `armv6-m` target via
+  `konan.properties` + `picolibc`. The Kotlin/Native runtime (GC,
+  reflection, memory model) assumes a hosted libc/OS — contributors report
+  unresolved blockers when building the K/N runtime itself for RP2040.
+  **No evidence of a working end-to-end build producing a UF2** with the
+  standard compiler, but also no evidence that it is definitively
+  impossible.
 
 **Alternatives considered**:
-- Czekać na oficjalne wsparcie KT-44498 — odrzucone: brak harmonogramu,
-  blokowałoby cały projekt na czas nieokreślony.
-- Zrezygnować z Kotlin/Native na rzecz C z cienkim wrapperem — odrzucone:
-  łamie fundamentalne założenie projektu (Zasada I/II konstytucji).
-- Kotlin/Wasm lub inny backend — odrzucone: nie generuje natywnego kodu ARM
-  wykonywalnego na mikrokontrolerze bez OS.
+- Wait for official support via KT-44498 — rejected: no timeline, would
+  block the entire project indefinitely.
+- Drop Kotlin/Native in favor of C with a thin wrapper — rejected: breaks a
+  fundamental assumption of the project (Constitution Principle I/II).
+- Kotlin/Wasm or another backend — rejected: does not generate native ARM
+  code runnable on a microcontroller without an OS.
 
-**Implikacja dla planu**: Jeśli Faza 0 nie potwierdzi wykonalności w
-zadeklarowanym czasie (2 tygodnie, SC-001), wymagana jest natychmiastowa
-eskalacja do użytkownika i rewizja `ROADMAP.md`/konstytucji — plan zakłada
-sukces, ale explicit tego nie gwarantuje (stąd status PoC, nie
-"implementacja").
+**Implication for the plan**: If Phase 0 does not confirm feasibility
+within the declared time (2 weeks, SC-001), an immediate escalation to the
+user and a revision of `ROADMAP.md`/the constitution is required — the
+plan assumes success, but does not explicitly guarantee it (hence the PoC
+status, not "implementation").
 
-## 2. Mechanizm cinterop bez KMP
+## 2. Cinterop mechanism without KMP
 
-**Decision**: Narzędzie `cinterop` jest dystrybuowane jako samodzielny plik
-wykonywalny w dystrybucji kompilatora Kotlin/Native (`<konan-dist>/bin/cinterop`),
-niezależny od pluginu `kotlin("multiplatform")`. Plugin wywołuje go
-bezpośrednio przez Gradle `Exec`/`ExecOperations`, z plikiem `.def`
-wskazującym nagłówki Pico SDK (`pico_stdlib`, `hardware_gpio`,
-`hardware_pwm`, opcjonalnie `pico_cyw43_arch`).
+**Decision**: The `cinterop` tool is distributed as a standalone
+executable within the Kotlin/Native compiler distribution
+(`<konan-dist>/bin/cinterop`), independent of the `kotlin("multiplatform")`
+plugin. The plugin invokes it directly via Gradle `Exec`/`ExecOperations`,
+with a `.def` file pointing to Pico SDK headers (`pico_stdlib`,
+`hardware_gpio`, `hardware_pwm`, optionally `pico_cyw43_arch`).
 
-**Rationale**: Niskie ryzyko — to udokumentowany, stabilny interfejs CLI
-kompilatora, używany też wewnętrznie przez plugin KMP.
+**Rationale**: Low risk — this is a documented, stable compiler CLI
+interface, also used internally by the KMP plugin.
 
-**Alternatives considered**: Reimplementacja cinterop — odrzucone,
-niepotrzebne (ladder ponytail: użyj istniejącego narzędzia).
+**Alternatives considered**: Reimplementing cinterop — rejected,
+unnecessary (ponytail ladder: use the existing tool).
 
-## 3. Dystrybucja kompilatora Kotlin/Native
+## 3. Kotlin/Native compiler distribution
 
-**Decision**: Plugin pobiera oficjalną dystrybucję Kotlin/Native 2.4.0 dla
-Linux x86_64 i cache'uje ją lokalnie (FR-013/FR-014), następnie wywołuje
-`bin/konanc` z opcjami custom targetu (patrz punkt 1) przez Gradle `Exec`.
-**Zweryfikowane w Fazie 0 (T008)**: `download.jetbrains.com` zwraca 404 dla
-tej dystrybucji — realny, działający URL to GitHub Releases:
+**Decision**: The plugin downloads the official Kotlin/Native 2.4.0
+distribution for Linux x86_64 and caches it locally (FR-013/FR-014), then
+invokes `bin/konanc` with custom target options (see point 1) via Gradle
+`Exec`.
+**Verified in Phase 0 (T008)**: `download.jetbrains.com` returns a 404 for
+this distribution — the real, working URL is GitHub Releases:
 `https://github.com/JetBrains/kotlin/releases/download/v2.4.0/kotlin-native-prebuilt-linux-x86_64-2.4.0.tar.gz`
-(plus `.sha256` w tym samym release, do weryfikacji sumy kontrolnej).
+(plus a `.sha256` in the same release, for checksum verification).
 
-**Rationale**: Spójne z FR-013 (auto-provisioning "toolchaina") — sam
-kompilator K/N jest częścią toolchaina niezbędnego do budowy, mimo że spec
-explicite wymienia "Pico SDK, toolchain ARM, picotool, OpenOCD"; kompilator
-K/N jest domyślnym, oczywistym elementem bez którego FR-001 nie da się
-zrealizować, więc traktowany jest jako podzbiór "toolchain ARM" w duchu
-FR-013, a nie nowy zakres.
+**Rationale**: Consistent with FR-013 (auto-provisioning of the
+"toolchain") — the K/N compiler itself is part of the toolchain needed to
+build, even though the spec explicitly lists "Pico SDK, ARM toolchain,
+picotool, OpenOCD"; the K/N compiler is the obvious, default element
+without which FR-001 cannot be realized, so it is treated as a subset of
+the "ARM toolchain" in the spirit of FR-013, not new scope.
 
-**Alternatives considered**: Wymagać ręcznej instalacji Kotlin/Native przez
-dewelopera — odrzucone, niespójne z decyzją auto-provisioningu (Clarifications
-w spec.md).
+**Alternatives considered**: Requiring the developer to manually install
+Kotlin/Native — rejected, inconsistent with the auto-provisioning decision
+(Clarifications in spec.md).
 
-## 4. Generowanie UF2
+## 4. UF2 generation
 
-**Decision (zrewidowana po PoC, 2026-07-03)**: `GenerateUf2Task` wywołuje
-provisionowany `picotool uf2 convert <elf> <uf2> --family <rp2040|rp2350>`.
-Pierwotna decyzja (natywny `Uf2Writer.kt` w Kotlinie) uchylona.
+**Decision (revised after the PoC, 2026-07-03)**: `GenerateUf2Task` calls
+the provisioned `picotool uf2 convert <elf> <uf2> --family <rp2040|rp2350>`.
+The original decision (a native `Uf2Writer.kt` in Kotlin) is superseded.
 
-**Rationale**: Pierwotna przesłanka ("elf2uf2 wymaga budowania ze źródeł,
-brak prebuilt") zdezaktualizowała się w praktyce PoC: `picotool` — który i
-tak jest provisionowany przez plugin (FR-013, prebuilt z `pico-sdk-tools`)
-— ma wbudowaną komendę `uf2 convert`, użytą z sukcesem w PoC
-(zweryfikowana na fizycznym sprzęcie). Ladder ponytail: istniejąca,
-wymagana zależność > własna implementacja formatu. Zasada II nienaruszona —
-to orkiestracja narzędzia zewnętrznego (jak konanc/gcc), nie kod źródłowy.
+**Rationale**: The original premise ("elf2uf2 requires building from
+source, no prebuilt binary") turned out to be outdated in practice during
+the PoC: `picotool` — which the plugin provisions anyway (FR-013, prebuilt
+from `pico-sdk-tools`) — has a built-in `uf2 convert` command, used
+successfully in the PoC (verified on physical hardware). Ponytail ladder:
+an existing, required dependency beats a custom implementation. Principle
+II not violated — this is orchestration of an external tool (like
+konanc/gcc), not plugin source code.
 
-**Alternatives considered**: Natywny `Uf2Writer` w Kotlinie — odrzucony
-jako zbędna reimplementacja; wraca na stół tylko, gdyby picotool przestał
-być provisionowany lub jego `uf2 convert` okazał się niewystarczający.
+**Alternatives considered**: A native `Uf2Writer` in Kotlin — rejected as
+an unnecessary reimplementation; it comes back on the table only if
+picotool stops being provisioned or its `uf2 convert` proves insufficient.
 
-## 5. Źródła auto-provisioningu narzędzi (FR-013/FR-014)
+## 5. Sources for tool auto-provisioning (FR-013/FR-014)
 
-Zweryfikowane źródłowo, konkretne URL-e i format:
+Verified from primary sources, with concrete URLs and formats:
 
-| Narzędzie | Źródło | Format | Uwagi |
+| Tool | Source | Format | Notes |
 |---|---|---|---|
-| Pico SDK | `github.com/raspberrypi/pico-sdk`, pinned tag `2.2.0` | shallow git clone `--recurse-submodules` | tarball źródłowy nie zawiera submodułów (np. `tinyusb`) — wymagany git clone |
-| Toolchain ARM (`arm-none-eabi-gcc`) | `github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases` | prebuilt tarball `xpack-arm-none-eabi-gcc-{VERSION}-linux-x64.tar.gz` + `.sha` checksum | idealne pod automatyzację — wersjonowane, z sumami kontrolnymi |
-| `picotool` | `github.com/raspberrypi/pico-sdk-tools/releases` (NIE `raspberrypi/picotool` — tam tylko źródła) | prebuilt `picotool-{VERSION}-*-x86_64-lin.tar.gz` | |
-| OpenOCD (fork RP2040/RP2350) | `github.com/raspberrypi/pico-sdk-tools/releases` (NIE `raspberrypi/openocd` — brak Releases, tylko tagi git) | prebuilt `openocd-{VERSION}-x86_64-lin.tar.gz` | |
+| Pico SDK | `github.com/raspberrypi/pico-sdk`, pinned tag `2.2.0` | shallow git clone `--recurse-submodules` | the source tarball does not include submodules (e.g. `tinyusb`) — git clone is required |
+| ARM toolchain (`arm-none-eabi-gcc`) | `github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases` | prebuilt tarball `xpack-arm-none-eabi-gcc-{VERSION}-linux-x64.tar.gz` + `.sha` checksum | ideal for automation — versioned, with checksums |
+| `picotool` | `github.com/raspberrypi/pico-sdk-tools/releases` (NOT `raspberrypi/picotool` — that repo has only sources) | prebuilt `picotool-{VERSION}-*-x86_64-lin.tar.gz` | |
+| OpenOCD (RP2040/RP2350 fork) | `github.com/raspberrypi/pico-sdk-tools/releases` (NOT `raspberrypi/openocd` — no Releases, only git tags) | prebuilt `openocd-{VERSION}-x86_64-lin.tar.gz` | |
 
-**Decision**: Wszystkie cztery narzędzia pobierane z powyższych,
-zweryfikowanych źródeł; `picotool` i OpenOCD z jednego wspólnego repo
-(`pico-sdk-tools`), co upraszcza logikę provisioningu (jeden dostawca
-release'ów dla obu).
+**Decision**: All four tools are downloaded from the sources above, which
+have been verified; `picotool` and OpenOCD share a single repo
+(`pico-sdk-tools`), which simplifies the provisioning logic (one release
+provider for both).
 
-**Rationale**: Unika najczęstszego błędu w tym obszarze — repo
-`raspberrypi/picotool` i `raspberrypi/openocd` NIE publikują prebuilt
-binarek (tylko źródła/tagi); realny adres prebuilt artefaktów to
-`raspberrypi/pico-sdk-tools`.
+**Rationale**: Avoids the most common mistake in this area — the
+`raspberrypi/picotool` and `raspberrypi/openocd` repos do NOT publish
+prebuilt binaries (only sources/tags); the real location of the prebuilt
+artifacts is `raspberrypi/pico-sdk-tools`.
 
-**Alternatives considered**: Budowanie `picotool`/OpenOCD ze źródeł przez
-CMake w ramach auto-provisioningu — odrzucone dla tej fazy: znacząco
-zwiększa czas pierwszego builda i złożoność (wymaga CMake + kompilatora hosta
-jako dodatkowej zależności), niespójne z SC-002 (< 15 min pierwszego builda).
-Może wrócić jako fallback, jeśli `pico-sdk-tools` nie publikuje binarki dla
-danej wersji/platformy.
+**Alternatives considered**: Building `picotool`/OpenOCD from source via
+CMake as part of auto-provisioning — rejected for this phase: it
+significantly increases the time of the first build and the complexity
+(requires CMake plus a host compiler as an additional dependency),
+inconsistent with SC-002 (< 15 min for the first build). May come back as
+a fallback if `pico-sdk-tools` does not publish a binary for a given
+version/platform.
 
-## Cache lokalny (wspólne dla wszystkich czterech narzędzi)
+## Local cache (shared across all four tools)
 
-**Decision**: `<gradleUserHome>/caches/kopico/<narzędzie>/<wersja>/` —
-wykorzystuje istniejącą konwencję Gradle User Home zamiast wynajdywać własną
-lokalizację cache.
+**Decision**: `<gradleUserHome>/caches/kopico/<tool>/<version>/` — reuses
+the existing Gradle User Home convention instead of inventing a custom
+cache location.
 
-**Rationale**: Zgodne z Zasadą IV (konwencje ekosystemu Gradle) i ladder
-ponytail (reuse istniejącego mechanizmu zamiast pisania nowego). Gradle User
-Home jest już czyszczony/zarządzany przez istniejące narzędzia (`gradle
---stop`, cache cleanup), więc plugin nie musi implementować własnej logiki
-czyszczenia w tej fazie.
+**Rationale**: Consistent with Principle IV (Gradle ecosystem conventions)
+and the ponytail ladder (reuse an existing mechanism instead of writing a
+new one). Gradle User Home is already cleaned up/managed by existing tools
+(`gradle --stop`, cache cleanup), so the plugin does not need to implement
+its own cleanup logic at this stage.
