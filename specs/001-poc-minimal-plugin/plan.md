@@ -67,6 +67,14 @@ projekt blink
 
 Brak naruszeń — `Complexity Tracking` pozostaje pusty.
 
+**Re-check po Fazie 1 (design)**: `research.md`, `data-model.md` i
+`contracts/extension-dsl.md` nie wprowadzają nowych naruszeń. Decyzja o
+natywnym `Uf2Writer` w Kotlinie wzmacnia Zasadę II (mniej zależności
+binarnych). Wywołania zewnętrznych narzędzi (`konanc`, `cinterop`,
+`arm-none-eabi-gcc`, `picotool`, `openocd`) przez Gradle `Exec` nie łamią
+Zasady II — to orkiestracja procesów zewnętrznych, nie kod źródłowy pluginu.
+PASS bez zmian.
+
 ## Project Structure
 
 ### Documentation (this feature)

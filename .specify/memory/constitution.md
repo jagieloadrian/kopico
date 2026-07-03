@@ -1,5 +1,24 @@
 <!--
 Sync Impact Report
+Version change: 1.2.0 → 1.2.1
+Modified principles: none
+Added sections: none
+Removed sections: none
+Modified sections:
+  - I. Ścisła kontrola wersji toolchainu — dodano adnotację "Znany bloker"
+    (2026-07-03): spike techniczny (specs/001-poc-minimal-plugin/poc/)
+    empirycznie obalił wykonalność rejestracji custom targetu Kotlin/Native
+    przez konan.properties. Wymóg zasady pozostaje bez zmian (cel), ale jego
+    techniczna ścieżka realizacji jest otwarta/niepotwierdzona — czysto
+    informacyjna adnotacja, nie redefinicja zasady, stąd PATCH.
+Follow-up TODOs:
+  - Decyzja o dalszym kierunku architektonicznym (fork kompilatora / inna
+    architektura / rewizja zakresu) — poza zakresem tej poprawki, do
+    podjęcia osobno przez użytkownika.
+-->
+
+<!--
+LEGACY Sync Impact Report (v1.1.0 → v1.2.0, zachowane dla historii)
 Version change: 1.1.0 → 1.2.0
 Modified principles: none renamed
 Added sections: none (existing section expanded)
@@ -40,6 +59,17 @@ tej konstytucji.
 Kotlin/Native ABI i Gradle toolchain resolution; sztywne wersje eliminują całą
 klasę błędów "działa u mnie" oraz niekompatybilności między środowiskami CI a
 lokalnymi.
+
+**⚠️ Znany bloker (2026-07-03)**: Spike techniczny
+(`specs/001-poc-minimal-plugin/poc/RESULTS.md`,
+`poc/konan-target-spike.md`) wykazał empirycznie, że Kotlin/Native 2.4.0
+**nie udostępnia mechanizmu rejestracji custom targetu** (np. dla
+`thumbv6m-none-eabi`) przez `konan.properties` — kompilator odrzuca
+nieznane targety przed odczytem pliku konfiguracyjnego. Wymóg "custom
+native target" w tej zasadzie pozostaje w mocy jako cel, ale jego
+techniczna wykonalność w obecnym kształcie jest **niepotwierdzona** i
+wymaga decyzji o dalszym kierunku (fork kompilatora, inna architektura, lub
+rewizja zakresu projektu) przed kontynuacją implementacji pluginu.
 
 ### II. 100% Kotlin, zero Javy
 
@@ -161,4 +191,4 @@ Każdy plan (`plan.md`) i przegląd kodu MUSI zawierać sekcję Constitution
 Check weryfikującą zgodność z zasadami I–V powyżej. Złamanie zasady bez
 udokumentowanego uzasadnienia w `Complexity Tracking` blokuje scalenie.
 
-**Version**: 1.2.0 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-02
+**Version**: 1.2.1 | **Ratified**: 2026-07-02 | **Last Amended**: 2026-07-03

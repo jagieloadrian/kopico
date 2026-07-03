@@ -43,3 +43,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### PoC artifacts (large binaries and nested repos) ###
+poc/toolchain/
+poc/pico-sdk/
+poc/kotlin-native/

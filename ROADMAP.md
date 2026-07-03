@@ -3,6 +3,22 @@
 Plan implementacji Gradle Pluginu `com.anjo.kopico` dla Kotlin/Native na
 Raspberry Pi Pico / Pico 2 (RP2040 / RP2350).
 
+> **🛑 STATUS: Faza 0 zablokowana (2026-07-03).** Spike techniczny
+> (`specs/001-poc-minimal-plugin/poc/`) empirycznie obalił kluczowe
+> założenie architektoniczne: Kotlin/Native 2.4.0 **nie pozwala**
+> zarejestrować custom targetu (np. `thumbv6m-none-eabi`) przez
+> `konan.properties` — kompilator waliduje `-target` względem zamkniętej
+> listy wkompilowanej w binarkę, zanim w ogóle odczyta plik properties.
+> Wymagałoby to forka i rekompilacji samego kompilatora Kotlin/Native oraz
+> dostosowania jego runtime'u do środowiska bez OS — przedsięwzięcie
+> wielokrotnie większe niż "Faza 0/1: PoC + minimalny plugin". Pełny dowód
+> i analiza opcji dalszego kierunku:
+> `specs/001-poc-minimal-plugin/poc/RESULTS.md` i
+> `specs/001-poc-minimal-plugin/poc/konan-target-spike.md`. **Fazy 1-5
+> poniżej pozostają jako zapis pierwotnego planu, ale ich realizacja w
+> obecnym kształcie jest zawieszona do czasu podjęcia decyzji o dalszym
+> kierunku architektonicznym.**
+
 > **Uwaga architektoniczna**: zgodnie z Zasadą I konstytucji projektu
 > (`.specify/memory/constitution.md`), plugin działa w trybie **czystego
 > Kotlin/Native** (custom native target), **nie** Kotlin Multiplatform.

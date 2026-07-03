@@ -19,6 +19,7 @@ działającego pluginu Gradle `com.anjo.kopico`.
 - Q: Czy plugin ma jawnie sprawdzać dostępność `arm-none-eabi-gcc` (i pokrewnych narzędzi) przed buildem? → A: Tak — plugin jawnie sprawdza obecność toolchaina ARM przed kompilacją i zwraca czytelny błąd, jeśli brak.
 - Q: Jakie narzędzia plugin ma potrafić samodzielnie pobrać/dostarczyć, żeby developer mógł z nich skorzystać bez ręcznej instalacji? → A: Pico SDK + toolchain ARM + picotool/OpenOCD (pełny zestaw, łącznie z narzędziami do flashowania/debugu).
 - Q: Jaka ma być strategia pobierania narzędzi przez plugin? → A: Automatyczne pobieranie z lokalnym cache i przypięciem wersji — pobiera raz do katalogu cache, kolejne buildy używają cache bez sieci.
+- Q: Czy SC-005 ("czyste środowisko CI") ma wymagać faktycznego, minimalnego workflow CI już w tej fazie, czy wystarczy lokalna symulacja czystego środowiska? → A: Wymagany minimalny, faktyczny workflow CI (np. jeden job GitHub Actions uruchamiający build) już w tej fazie — pełne CI/CD (multi-job, release automation itp.) pozostaje w Fazie 5.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -203,8 +204,9 @@ dodatkowej ręcznej konfiguracji cinterop.
   weryfikowalne bez fizycznego dostępu do wszystkich urządzeń (np. przez
   testy konfiguracji pluginu).
 - **SC-005**: Build przykładowego projektu blink kończy się sukcesem (bez
-  błędów) za pierwszym uruchomieniem na czystym środowisku CI (Linux), bez
-  interaktywnej interwencji.
+  błędów) za pierwszym uruchomieniem w faktycznym, zautomatyzowanym
+  środowisku CI (jeden hostowany job na Linux), bez interaktywnej
+  interwencji.
 - **SC-006**: Po pierwszym pobraniu narzędzi (Pico SDK, toolchain ARM,
   picotool, OpenOCD) na danej maszynie, kolejne buildy tego samego projektu
   kończą się sukcesem bez dostępu do sieci, korzystając wyłącznie z
@@ -222,9 +224,15 @@ dodatkowej ręcznej konfiguracji cinterop.
   pobierania (URL/registry) i dokładna lokalizacja cache są szczegółem
   technicznym ustalanym na etapie planowania (`/speckit-plan`), nie tej
   specyfikacji.
-- Środowisko developerskie i CI to Linux (zgodnie z `ROADMAP.md`, Faza 5:
-  "CI/CD – budowanie na Linux") — wsparcie dla innych systemów operacyjnych
-  nie jest wymagane w tym zakresie.
+- Środowisko developerskie i CI to Linux — wsparcie dla innych systemów
+  operacyjnych nie jest wymagane w tym zakresie. Pełne CI/CD (multi-job,
+  release automation, publikacja artefaktów itp.) pozostaje przedmiotem
+  Fazy 5 z `ROADMAP.md`; **ta specyfikacja wymaga jednak minimalnego,
+  faktycznego, jednojobowego, zautomatyzowanego środowiska CI już teraz**
+  (SC-005) — weryfikującego wyłącznie sukces builda przykładowego projektu
+  blink na czystym środowisku Linux. Konkretny dostawca/usługa CI jest
+  szczegółem technicznym ustalanym na etapie planowania, nie tej
+  specyfikacji.
 - RP2350/rdzeń RISC-V jest poza zakresem tej specyfikacji (obejmuje ją
   dopiero Faza 4 z `ROADMAP.md`) — na tym etapie RP2350 traktowany jest
   wyłącznie przez rdzeń ARM.

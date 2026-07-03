@@ -45,4 +45,10 @@
   (acceptance scenarios), Edge Cases, Assumptions i Success Criteria
   (SC-002, SC-006). Nadal Faza 0/1 z `ROADMAP.md` — same zadania Gradle
   `flash`/`debug` pozostają poza zakresem (Faza 3).
+- Sesja 2026-07-02 (runda 3, po `/speckit-analyze`): rozwiązano napięcie
+  między SC-005 a Assumptions dot. CI (finding E2 z raportu analizy) —
+  SC-005 doprecyzowany jako wymóg minimalnego, faktycznego, jednojobowego,
+  zautomatyzowanego środowiska CI już w tej fazie (nie tylko lokalna
+  symulacja); usunięto odniesienie do konkretnego dostawcy CI
+  ("GitHub Actions") na rzecz sformułowania technology-agnostic.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
