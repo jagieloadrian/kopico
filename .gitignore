@@ -52,3 +52,4 @@ poc/blink/build-*/
 poc/blink/libkotlinapp.a
 poc/blink/*_api.h
 poc/interop/pico.klib
+poc/interop/pico.klib-build/

@@ -1,5 +1,6 @@
 plugins {
     `java-gradle-plugin`
+    `maven-publish`
     kotlin("jvm") version "2.4.0"
     id("org.jlleitschuh.gradle.ktlint") version "12.1.2"
     id("io.gitlab.arturbosch.detekt") version "1.23.7"
@@ -40,4 +41,5 @@ tasks.test {
 
 detekt {
     buildUponDefaultConfig = true
+    config.setFrom("detekt.yml")
 }
