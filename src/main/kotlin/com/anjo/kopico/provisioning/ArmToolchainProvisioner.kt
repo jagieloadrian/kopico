@@ -14,13 +14,13 @@ class ArmToolchainProvisioner(
         override?.let { return it }
         ToolCache.findInPath(GCC_EXECUTABLE, searchPath)?.let { gcc ->
             if (hasPinnedMajorVersion(gcc)) {
-                logger.debug { "kopico: arm-none-eabi-gcc z PATH: $gcc" }
+                logger.debug { "kopico: arm-none-eabi-gcc from PATH: $gcc" }
                 return gcc.parentFile.parentFile
             }
             logger.info {
-                "kopico: arm-none-eabi-gcc z PATH ma wersję inną niż pinowana " +
-                    "$VERSION — używam provisionowanego toolchaina (gcc 13 produkuje " +
-                    "ELF odrzucany przez picotool)"
+                "kopico: arm-none-eabi-gcc from PATH has a version other than pinned " +
+                    "$VERSION — using the provisioned toolchain (gcc 13 produces " +
+                    "an ELF rejected by picotool)"
             }
         }
         val dest = cache.dir("arm-toolchain", VERSION)

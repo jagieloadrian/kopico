@@ -15,7 +15,7 @@ internal fun runTool(
     val output = process.inputStream.bufferedReader().readText()
     if (process.waitFor() != 0) {
         throw GradleException(
-            "kopico: polecenie '${command.joinToString(" ")}' zakończyło się błędem:\n$output",
+            "kopico: command '${command.joinToString(" ")}' failed:\n$output",
         )
     }
 }
@@ -27,6 +27,6 @@ internal fun copyPluginResource(
     dest.parentFile.mkdirs()
     val stream =
         object {}.javaClass.getResourceAsStream("/kopico/$name")
-            ?: throw GradleException("kopico: brak zasobu /kopico/$name w dystrybucji pluginu")
+            ?: throw GradleException("kopico: missing resource /kopico/$name in the plugin distribution")
     stream.use { input -> dest.outputStream().use { input.copyTo(it) } }
 }

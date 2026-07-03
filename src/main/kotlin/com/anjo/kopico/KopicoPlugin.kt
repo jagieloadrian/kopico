@@ -58,15 +58,15 @@ class KopicoPlugin : Plugin<Project> {
     ) {
         if (!extension.board.isPresent) {
             throw GradleException(
-                "kopico: brak wymaganej właściwości 'board' w bloku pico { }. " +
-                    "Dozwolone wartości: " +
+                "kopico: missing required property 'board' in the pico { } block. " +
+                    "Allowed values: " +
                     BoardVariant.entries.joinToString(", ") { "\"${it.id}\"" },
             )
         }
         try {
             BoardVariant.fromId(extension.board.get())
         } catch (e: IllegalStateException) {
-            throw GradleException(e.message ?: "kopico: nieprawidłowa wartość 'board'", e)
+            throw GradleException(e.message ?: "kopico: invalid value for 'board'", e)
         }
         if (extension.sdkPath.isPresent) {
             PicoSdkProvisioner(cache).validateUserSdk(extension.sdkPath.get().asFile)

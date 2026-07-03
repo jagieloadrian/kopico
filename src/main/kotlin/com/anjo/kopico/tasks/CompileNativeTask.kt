@@ -46,8 +46,8 @@ abstract class CompileNativeTask : DefaultTask() {
         val sourceFiles = sources.asFileTree.files.filter { it.extension == "kt" }
         if (sourceFiles.isEmpty()) {
             throw GradleException(
-                "kopico: brak źródeł Kotlin w ${sources.files.joinToString()} — " +
-                    "umieść kod w src/nativeMain/kotlin/",
+                "kopico: no Kotlin sources found in ${sources.files.joinToString()} — " +
+                    "place your code in src/nativeMain/kotlin/",
             )
         }
         val out = outputDir.get().asFile.also { it.mkdirs() }

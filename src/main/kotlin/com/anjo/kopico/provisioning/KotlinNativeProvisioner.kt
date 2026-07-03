@@ -38,15 +38,15 @@ class KotlinNativeProvisioner(
             findClang() ?: run {
                 warmupDependencies(distRoot)
                 findClang() ?: throw GradleException(
-                    "kopico: patch atrybutów .bc wymaga clang z zależności Kotlin/Native " +
-                        "(~/.konan/dependencies/llvm-*), a kompilacja rozgrzewkowa go nie dostarczyła.",
+                    "kopico: patching .bc attributes requires clang from the Kotlin/Native " +
+                        "dependencies (~/.konan/dependencies/llvm-*), and the warmup build did not provide it.",
                 )
             }
         patchBitcodeIfNeeded(distRoot, clang)
     }
 
     private fun warmupDependencies(distRoot: File) {
-        logger.info { "kopico: kompilacja rozgrzewkowa konanc (pobranie zależności LLVM)" }
+        logger.info { "kopico: warmup konanc build (downloading LLVM dependencies)" }
         val tmp = kotlin.io.path.createTempDirectory("kopico-warmup").toFile()
         try {
             val source = File(tmp, "Warmup.kt").apply { writeText("fun main() {}\n") }
@@ -61,7 +61,7 @@ class KotlinNativeProvisioner(
                 ).redirectErrorStream(true).start()
             val output = proc.inputStream.bufferedReader().readText()
             if (proc.waitFor() != 0) {
-                throw GradleException("kopico: kompilacja rozgrzewkowa konanc nie powiodła się:\n$output")
+                throw GradleException("kopico: warmup konanc build failed:\n$output")
             }
         } finally {
             tmp.deleteRecursively()
@@ -77,18 +77,18 @@ class KotlinNativeProvisioner(
         if (marker.isFile) return false
         if (!nativeDir.isDirectory) {
             throw GradleException(
-                "kopico: dystrybucja Kotlin/Native w $distRoot nie zawiera " +
-                    "katalogu ${nativeDir.relativeTo(distRoot)} — niekompletna instalacja?",
+                "kopico: the Kotlin/Native distribution at $distRoot does not contain " +
+                    "the directory ${nativeDir.relativeTo(distRoot)} — incomplete installation?",
             )
         }
         if (clang == null) {
             throw GradleException(
-                "kopico: patch atrybutów .bc wymaga clang z zależności Kotlin/Native " +
-                    "(~/.konan/dependencies/llvm-*). Uruchom najpierw dowolną kompilację " +
-                    "konanc (pobierze zależności automatycznie) albo wskaż clang ręcznie.",
+                "kopico: patching .bc attributes requires clang from the Kotlin/Native " +
+                    "dependencies (~/.konan/dependencies/llvm-*). Run any konanc build first " +
+                    "(it will download the dependencies automatically) or point to clang manually.",
             )
         }
-        logger.info { "kopico: patchowanie atrybutów .bc w $nativeDir (jednorazowe)" }
+        logger.info { "kopico: patching .bc attributes in $nativeDir (one-time)" }
         val backup = File(nativeDir.parentFile, "native.bak")
         if (!backup.exists()) nativeDir.copyRecursively(backup)
         nativeDir.listFiles { f -> f.extension == "bc" }?.forEach { patchOne(it, clang) }
@@ -114,7 +114,7 @@ class KotlinNativeProvisioner(
         val proc = ProcessBuilder(shell).redirectErrorStream(true).start()
         val output = proc.inputStream.bufferedReader().readText()
         if (proc.waitFor() != 0 || !patched.isFile) {
-            throw GradleException("kopico: patch ${bc.name} nie powiódł się:\n$output")
+            throw GradleException("kopico: patching ${bc.name} failed:\n$output")
         }
         patched.copyTo(bc, overwrite = true)
         patched.delete()

@@ -14,7 +14,7 @@ class PicoSdkProvisioner(private val cache: ToolCache) {
         }
         val dest = cache.dir("pico-sdk", SDK_TAG)
         if (File(dest, VERSION_FILE).isFile) {
-            logger.debug { "kopico: Pico SDK z cache: $dest" }
+            logger.debug { "kopico: Pico SDK from cache: $dest" }
             return dest
         }
         cloneSdk(dest)
@@ -25,28 +25,28 @@ class PicoSdkProvisioner(private val cache: ToolCache) {
         val versionFile = File(sdk, VERSION_FILE)
         if (!sdk.isDirectory || !versionFile.isFile) {
             throw GradleException(
-                "kopico: sdkPath '$sdk' nie wskazuje na kompletne Pico SDK " +
-                    "(brak $VERSION_FILE). Popraw ścieżkę lub usuń sdkPath z konfiguracji " +
-                    "pico { }, aby plugin pobrał SDK automatycznie.",
+                "kopico: sdkPath '$sdk' does not point to a complete Pico SDK " +
+                    "(missing $VERSION_FILE). Fix the path or remove sdkPath from the " +
+                    "pico { } configuration so the plugin downloads the SDK automatically.",
             )
         }
         val version =
             parseVersion(versionFile.readText())
                 ?: throw GradleException(
-                    "kopico: nie udało się odczytać wersji Pico SDK z $versionFile. " +
-                        "Wymagana wersja >= $MIN_VERSION.",
+                    "kopico: could not read the Pico SDK version from $versionFile. " +
+                        "Required version >= $MIN_VERSION.",
                 )
         if (!isAtLeastMinVersion(version)) {
             throw GradleException(
-                "kopico: Pico SDK w '$sdk' ma wersję ${version.joinToString(".")}, " +
-                    "wymagana >= $MIN_VERSION (FR-011). Zaktualizuj SDK lub usuń sdkPath, " +
-                    "aby plugin pobrał właściwą wersję automatycznie.",
+                "kopico: Pico SDK at '$sdk' is version ${version.joinToString(".")}, " +
+                    "required >= $MIN_VERSION (FR-011). Update the SDK or remove sdkPath " +
+                    "so the plugin downloads the correct version automatically.",
             )
         }
     }
 
     private fun cloneSdk(dest: File) {
-        logger.info { "kopico: klonowanie Pico SDK $SDK_TAG do $dest" }
+        logger.info { "kopico: cloning Pico SDK $SDK_TAG to $dest" }
         dest.parentFile.mkdirs()
         val proc =
             ProcessBuilder(
@@ -57,8 +57,8 @@ class PicoSdkProvisioner(private val cache: ToolCache) {
         if (proc.waitFor() != 0) {
             dest.deleteRecursively()
             throw GradleException(
-                "kopico: klonowanie Pico SDK nie powiodło się (wymagany git i sieć " +
-                    "przy pierwszym buildzie):\n$output",
+                "kopico: cloning the Pico SDK failed (requires git and network " +
+                    "access on the first build):\n$output",
             )
         }
     }

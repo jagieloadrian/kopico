@@ -20,7 +20,7 @@ class ToolCache(gradleUserHome: File) {
         url: String,
         dest: File,
     ) {
-        logger.info { "kopico: pobieranie $url" }
+        logger.info { "kopico: downloading $url" }
         dest.parentFile.mkdirs()
         try {
             URI(url).toURL().openStream().use { input ->
@@ -29,8 +29,8 @@ class ToolCache(gradleUserHome: File) {
         } catch (e: java.io.IOException) {
             dest.delete()
             throw GradleException(
-                "kopico: nie udało się pobrać narzędzia z $url (${e.message}). " +
-                    "Sprawdź połączenie sieciowe — wymagane tylko przy pierwszym buildzie (FR-014).",
+                "kopico: failed to download tool from $url (${e.message}). " +
+                    "Check your network connection — only required on the first build (FR-014).",
                 e,
             )
         }
@@ -57,9 +57,9 @@ class ToolCache(gradleUserHome: File) {
         if (!actual.equals(expected.trim(), ignoreCase = true)) {
             file.delete()
             throw GradleException(
-                "kopico: niezgodna suma kontrolna pobranego pliku ${file.name} " +
-                    "(oczekiwano $expected, otrzymano $actual). Pobierz ponownie — " +
-                    "plik mógł zostać uszkodzony w transporcie.",
+                "kopico: checksum mismatch for downloaded file ${file.name} " +
+                    "(expected $expected, got $actual). Download it again — " +
+                    "the file may have been corrupted in transit.",
             )
         }
     }
@@ -75,7 +75,7 @@ class ToolCache(gradleUserHome: File) {
                 .start()
         val output = proc.inputStream.bufferedReader().readText()
         if (proc.waitFor() != 0) {
-            throw GradleException("kopico: rozpakowanie ${archive.name} nie powiodło się: $output")
+            throw GradleException("kopico: extracting ${archive.name} failed: $output")
         }
     }
 

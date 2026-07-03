@@ -13,7 +13,7 @@ class KopicoPluginFunctionalTest : FunSpec({
 
     val e2eEnabled = System.getenv("KOPICO_E2E") == "1"
 
-    test("pelny build examples/blink do UF2 w < 15 min (SC-002), potem offline (SC-006)")
+    test("full build of examples/blink to UF2 in < 15 min (SC-002), then offline (SC-006)")
         .config(enabled = e2eEnabled) {
             val projectDir = createTempDirectory("kopico-e2e").toFile()
             File(projectDir, "settings.gradle.kts").writeText("rootProject.name = \"blink\"\n")

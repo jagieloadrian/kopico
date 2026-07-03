@@ -45,8 +45,8 @@ abstract class LinkTask : DefaultTask() {
         val lld =
             KotlinNativeProvisioner.findLld()
                 ?: throw GradleException(
-                    "kopico: brak ld.lld w ~/.konan/dependencies/llvm-* — " +
-                        "zadanie kompilacji Kotlin/Native powinno było pobrać zależności LLVM.",
+                    "kopico: missing ld.lld in ~/.konan/dependencies/llvm-* — " +
+                        "the Kotlin/Native compile task should have downloaded the LLVM dependencies.",
                 )
 
         val workDir = elfFile.get().asFile.parentFile

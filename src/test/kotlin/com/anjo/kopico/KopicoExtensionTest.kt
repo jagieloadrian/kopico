@@ -23,7 +23,7 @@ class KopicoExtensionTest : FunSpec({
         return current.message.orEmpty()
     }
 
-    test("poprawny board przechodzi walidację i rejestruje pipeline zadań") {
+    test("valid board passes validation and registers the task pipeline") {
         val project = projectWithPlugin()
         val pico = project.extensions.getByType(KopicoExtension::class.java)
         pico.board.set("pico")
@@ -34,14 +34,14 @@ class KopicoExtensionTest : FunSpec({
         }
     }
 
-    test("brak board konczy sie czytelnym bledem konfiguracji") {
+    test("missing board results in a readable configuration error") {
         val project = projectWithPlugin()
         val e = shouldThrowAny { evaluate(project) }
         rootMessage(e) shouldContain "board"
         rootMessage(e) shouldContain "pico"
     }
 
-    test("board spoza zbioru wymienia dozwolone wartosci") {
+    test("board outside the allowed set lists the allowed values") {
         val project = projectWithPlugin()
         project.extensions.getByType(KopicoExtension::class.java).board.set("banana")
         val e = shouldThrowAny { evaluate(project) }
@@ -49,12 +49,12 @@ class KopicoExtensionTest : FunSpec({
         rootMessage(e) shouldContain "pico2_w"
     }
 
-    test("sdkPath jest domyslnie nieustawione (auto-provisioning)") {
+    test("sdkPath is unset by default (auto-provisioning)") {
         val project = projectWithPlugin()
         project.extensions.getByType(KopicoExtension::class.java).sdkPath.isPresent.shouldBeFalse()
     }
 
-    test("sdkPath bez kompletnego SDK konczy sie czytelnym bledem") {
+    test("sdkPath without a complete SDK results in a readable error") {
         val project = projectWithPlugin()
         val pico = project.extensions.getByType(KopicoExtension::class.java)
         pico.board.set("pico")

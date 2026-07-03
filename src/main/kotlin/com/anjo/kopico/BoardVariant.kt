@@ -21,7 +21,7 @@ enum class BoardVariant(
         fun fromId(id: String): BoardVariant =
             entries.find { it.id == id }
                 ?: error(
-                    "Nieprawidłowa wartość 'board': \"$id\". Dozwolone wartości: " +
+                    "Invalid value for 'board': \"$id\". Allowed values: " +
                         entries.joinToString(", ") { "\"${it.id}\"" },
                 )
     }

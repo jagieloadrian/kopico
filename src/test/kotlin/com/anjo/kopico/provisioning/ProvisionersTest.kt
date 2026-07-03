@@ -17,7 +17,7 @@ class ProvisionersTest : FunSpec({
     fun tempDir(prefix: String): File = createTempDirectory(prefix).toFile()
 
     context("ToolCache") {
-        test("download przez file:// zapisuje plik do celu") {
+        test("download over file:// writes the file to the destination") {
             val cache = ToolCache(tempDir("guh"))
             val source = File(tempDir("src"), "tool.bin").apply { writeText("payload") }
             val dest = File(cache.dir("tool", "1.0"), "tool.bin")
@@ -25,31 +25,31 @@ class ProvisionersTest : FunSpec({
             dest.readText() shouldBe "payload"
         }
 
-        test("nieosiagalne zrodlo daje czytelny blad konfiguracji") {
+        test("unreachable source gives a readable configuration error") {
             val cache = ToolCache(tempDir("guh"))
             val e =
                 shouldThrow<GradleException> {
                     cache.download("file:///nonexistent/kopico/tool.bin", File(tempDir("dst"), "t"))
                 }
-            e.message shouldContain "nie udało się pobrać"
+            e.message shouldContain "failed to download"
         }
 
-        test("bledna suma kontrolna daje czytelny blad i usuwa plik") {
+        test("bad checksum gives a readable error and removes the file") {
             val cache = ToolCache(tempDir("guh"))
             val file = File(tempDir("f"), "archive.tar.gz").apply { writeText("data") }
             val e = shouldThrow<GradleException> { cache.verifySha256(file, "deadbeef") }
-            e.message shouldContain "suma kontrolna"
+            e.message shouldContain "checksum mismatch"
             file.shouldNotExist()
         }
 
-        test("poprawna suma kontrolna przechodzi") {
+        test("correct checksum passes") {
             val cache = ToolCache(tempDir("guh"))
             val file = File(tempDir("f"), "archive.tar.gz").apply { writeText("data") }
             cache.verifySha256(file, cache.sha256(file))
             file.shouldExist()
         }
 
-        test("findInPath znajduje plik wykonywalny") {
+        test("findInPath finds an executable file") {
             val bin = tempDir("bin")
             val tool =
                 File(bin, "sometool").apply {
@@ -73,7 +73,7 @@ class ProvisionersTest : FunSpec({
             }
         }
 
-        test("narzedzie z PATH w pinowanej wersji major ma pierwszenstwo — zero pobierania") {
+        test("tool from PATH at the pinned major version takes precedence — zero downloads") {
             val root = tempDir("gcc-root")
             fakeGcc(root, "15.2.1")
             val provisioner =
@@ -84,7 +84,7 @@ class ProvisionersTest : FunSpec({
             provisioner.provision() shouldBe root
         }
 
-        test("gcc z PATH w innej wersji major jest pomijany na rzecz cache") {
+        test("gcc from PATH at a different major version is skipped in favor of the cache") {
             val pathRoot = tempDir("gcc-13-root")
             fakeGcc(pathRoot, "13.2.1")
             val cache = ToolCache(tempDir("guh"))
@@ -95,7 +95,7 @@ class ProvisionersTest : FunSpec({
             provisioner.provision() shouldBe installed
         }
 
-        test("trafienie w cache zwraca zainstalowany toolchain bez sieci") {
+        test("cache hit returns the installed toolchain without network access") {
             val guh = tempDir("guh")
             val cache = ToolCache(guh)
             val version = ArmToolchainProvisioner.VERSION
@@ -127,26 +127,26 @@ class ProvisionersTest : FunSpec({
             return sdk
         }
 
-        test("jawny sdkPath w wersji >= 2.2.0 jest akceptowany") {
+        test("explicit sdkPath at version >= 2.2.0 is accepted") {
             val provisioner = PicoSdkProvisioner(ToolCache(tempDir("guh")))
             val sdk = sdkDir(2, 2, 0)
             provisioner.provision(sdk) shouldBe sdk
         }
 
-        test("SDK w wersji < 2.2.0 jest odrzucane z czytelnym komunikatem") {
+        test("SDK at version < 2.2.0 is rejected with a readable message") {
             val provisioner = PicoSdkProvisioner(ToolCache(tempDir("guh")))
             val e = shouldThrow<GradleException> { provisioner.validateUserSdk(sdkDir(1, 5, 1)) }
             e.message shouldContain "1.5.1"
             e.message shouldContain "2.2.0"
         }
 
-        test("sdkPath bez pico_sdk_version.cmake jest odrzucane") {
+        test("sdkPath without pico_sdk_version.cmake is rejected") {
             val provisioner = PicoSdkProvisioner(ToolCache(tempDir("guh")))
             val e = shouldThrow<GradleException> { provisioner.validateUserSdk(tempDir("not-sdk")) }
             e.message shouldContain "pico_sdk_version.cmake"
         }
 
-        test("porownanie wersji dziala per komponent") {
+        test("version comparison works per component") {
             PicoSdkProvisioner.isAtLeastMinVersion(listOf(2, 2, 0)).shouldBeTrue()
             PicoSdkProvisioner.isAtLeastMinVersion(listOf(3, 0, 0)).shouldBeTrue()
             PicoSdkProvisioner.isAtLeastMinVersion(listOf(2, 1, 9)).shouldBeFalse()
@@ -154,7 +154,7 @@ class ProvisionersTest : FunSpec({
         }
     }
 
-    context("KotlinNativeProvisioner — patch .bc (poc/konan-target-spike.md § Runda 3)") {
+    context("KotlinNativeProvisioner — patch .bc (poc/konan-target-spike.md § Round 3)") {
         fun fakeClang(): File {
             val bin = tempDir("fake-llvm")
             val clang = File(bin, "clang")
@@ -189,7 +189,7 @@ class ProvisionersTest : FunSpec({
             return dist
         }
 
-        test("patch podmienia atrybuty i jest idempotentny") {
+        test("patch replaces attributes and is idempotent") {
             val provisioner = KotlinNativeProvisioner(ToolCache(tempDir("guh")))
             val dist = fakeDist()
             val clang = fakeClang()
@@ -205,13 +205,13 @@ class ProvisionersTest : FunSpec({
             bc.readText() shouldBe patchedOnce
         }
 
-        test("niekompletna dystrybucja daje czytelny blad") {
+        test("incomplete distribution gives a readable error") {
             val provisioner = KotlinNativeProvisioner(ToolCache(tempDir("guh")))
             val e =
                 shouldThrow<GradleException> {
                     provisioner.patchBitcodeIfNeeded(tempDir("empty-dist"), fakeClang())
                 }
-            e.message shouldContain "niekompletna"
+            e.message shouldContain "incomplete"
         }
     }
 })

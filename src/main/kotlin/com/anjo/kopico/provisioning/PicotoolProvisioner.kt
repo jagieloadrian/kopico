@@ -20,7 +20,7 @@ class PicotoolProvisioner(
         archive.delete()
         return findExecutable(dest)
             ?: throw org.gradle.api.GradleException(
-                "kopico: rozpakowany picotool nie zawiera pliku wykonywalnego 'picotool' w $dest",
+                "kopico: extracted picotool does not contain an executable file 'picotool' in $dest",
             )
     }
 

@@ -33,7 +33,7 @@ class BoardVariantTest : FunSpec({
     test("invalid id throws a readable error listing allowed values") {
         val ex = shouldThrow<IllegalStateException> { BoardVariant.fromId("invalid_board") }
         ex.message shouldBe
-            "Nieprawidłowa wartość 'board': \"invalid_board\". Dozwolone wartości: " +
+            "Invalid value for 'board': \"invalid_board\". Allowed values: " +
             "\"pico\", \"pico_w\", \"pico2\", \"pico2_w\""
     }
 })
